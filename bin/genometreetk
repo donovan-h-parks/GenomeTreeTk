@@ -1,4 +1,5 @@
-#!/srv/sw/python/2.7.4/bin/python
+#!/usr/bin/env python3
+
 ###############################################################################
 #                                                                             #
 #    This program is free software: you can redistribute it and/or modify     #
