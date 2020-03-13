@@ -284,13 +284,13 @@ class RNA_Workflow(object):
             self.logger.info('Filtering identical sequences.')
 
             seq_ids = seqs.keys()
-            for i in xrange(0, len(seq_ids)):
+            for i in range(0, len(seq_ids)):
                 seq_id_I = seq_ids[i]
 
                 if seq_id_I in identical_seqs:
                     continue
 
-                for j in xrange(i + 1, len(seqIds)):
+                for j in range(i + 1, len(seqIds)):
                     seq_id_J = seq_ids[j]
                     if seqs[seq_id_I] == seqs[seq_id_J]:
                       self.logger.info('Seq %s and %s are identical.' % (seq_id_I, seq_id_J))
@@ -301,7 +301,7 @@ class RNA_Workflow(object):
         # trim start and end columns to consensus alignment
         first_char = []
         last_char = []
-        for seq_id, seq in seqs.iteritems():
+        for seq_id, seq in seqs.items():
             if seq_id in identical_seqs:
                 continue
 
@@ -310,7 +310,7 @@ class RNA_Workflow(object):
                     first_char.append(i)
                     break
 
-            for i in xrange(len(seq) - 1, -1, -1):
+            for i in range(len(seq) - 1, -1, -1):
                 if seq[i] != '.' and seq[i] != '-':
                     last_char.append(i)
                     break
@@ -329,12 +329,12 @@ class RNA_Workflow(object):
         fout = open(output_msa, 'w')
         fout_short = open(short_seq_file, 'w')
         num_filtered_seq = 0
-        for seq_id, seq in seqs.iteritems():
+        for seq_id, seq in seqs.items():
             if seq_id in identical_seqs:
                 continue
 
             valid_bp = 0
-            for i in xrange(start, min(len(seq), end + 1)):
+            for i in range(start, min(len(seq), end + 1)):
                 ch = seq[i]
                 if ch != '.' and ch != '-':
                     valid_bp += 1

@@ -155,7 +155,7 @@ class InferMarkers(object):
 
         # find genes meeting ubiquity and single-copy thresholds
         markers = {}
-        for protein_family, genes_in_genomes in gene_count_table.iteritems():
+        for protein_family, genes_in_genomes in gene_count_table.items():
             ubiquity = 0
             single_copy = 0
 
@@ -218,11 +218,11 @@ class InferMarkers(object):
 
         # count number of times HMMs hit the same gene
         redundancy_count = defaultdict(lambda: defaultdict(int))
-        for i in xrange(0, len(marker_gene_list)):
+        for i in range(0, len(marker_gene_list)):
             marker_gene_i = marker_gene_list[i]
             genes_in_genomes_i = gene_count_table[marker_gene_i]
 
-            for j in xrange(i + 1, len(marker_genes)):
+            for j in range(i + 1, len(marker_genes)):
                 marker_gene_j = marker_gene_list[j]
                 genes_in_genomes_j = gene_count_table[marker_gene_j]
 
@@ -245,7 +245,7 @@ class InferMarkers(object):
         # how to resolve such situations.
         hmms_to_remove = set()
         for marker_gene_i in redundancy_count:
-            for marker_gene_j, count in redundancy_count[marker_gene_i].iteritems():
+            for marker_gene_j, count in redundancy_count[marker_gene_i].items():
                 if count > redundancy:
                     if marker_gene_i in hmms_to_remove or marker_gene_j in hmms_to_remove:
                         # marker gene from this redundant pair is already marked for removal

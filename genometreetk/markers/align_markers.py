@@ -212,10 +212,10 @@ class AlignMarkers(object):
 
         # output masked sequences in FASTA format
         fout = open(output_file, 'w')
-        for seq_id, seq in seqs.iteritems():
+        for seq_id, seq in seqs.items():
             fout.write('>' + seq_id + '\n')
 
-            masked_seq = ''.join([seq[i] for i in xrange(0, len(seq)) if mask[i] == 'x'])
+            masked_seq = ''.join([seq[i] for i in range(0, len(seq)) if mask[i] == 'x'])
             fout.write(masked_seq + '\n')
         fout.close()
 

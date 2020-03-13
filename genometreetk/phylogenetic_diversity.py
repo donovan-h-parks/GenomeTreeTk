@@ -148,7 +148,7 @@ class PhylogeneticDiversity():
             
             fout = open(per_taxa_pg_file, 'w')
             fout.write('Taxon\tPG\tPercent PG\tFirst outgroup taxon\n')
-            for taxon, pg_stats in pg_taxon.iteritems():
+            for taxon, pg_stats in pg_taxon.items():
                 pg, outgroup_taxon = pg_stats
                 fout.write('%s\t%f\t%f\t%s\n' % (taxon, pg, pg * 100.0 / total_pd, outgroup_taxon))
             fout.close()

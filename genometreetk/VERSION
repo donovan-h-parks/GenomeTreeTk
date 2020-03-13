@@ -1,3 +1,9 @@
+0.1.1
+- added CM data files to repository
+
+0.1.0
+- initial migration to Python 3
+
 0.0.55
 - added rm_support
 - bootstrap command will not look for files with the extension '.treefile'

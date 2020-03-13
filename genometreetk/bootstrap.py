@@ -116,9 +116,9 @@ class Bootstrap(object):
             # calculate replicates
             self.logger.info('Calculating bootstrap replicates:')
             parallel = Parallel(self.cpus)
-            parallel.run(self._producer, None, xrange(num_replicates), self._progress)
+            parallel.run(self._producer, None, range(num_replicates), self._progress)
 
-            for rep_index in xrange(num_replicates):
+            for rep_index in range(num_replicates):
                 rep_tree_files.append(os.path.join(self.replicate_dir, 'bootstrap_tree.r_' + str(rep_index) + '.tree'))
         else:
             for f in os.listdir(boot_dir):

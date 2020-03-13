@@ -103,9 +103,9 @@ class RerootTree(object):
         self.logger.info('Identified %d outgroup taxa in the tree.' % len(outgroup_in_tree))
 
         if len(outgroup_in_tree) == 0:
-            self.logger.warning('No outgroup taxa identified in the tree.')
-            self.logger.warning('Tree was not rerooted.')
-            sys.exit(0)
+            self.logger.error('No outgroup taxa identified in the tree.')
+            self.logger.error('Tree was not rerooted.')
+            sys.exit(-1)
 
         mrca = tree.mrca(taxa=outgroup_in_tree)
 

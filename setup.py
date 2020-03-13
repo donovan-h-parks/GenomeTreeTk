@@ -15,12 +15,12 @@ setup(
     author_email='donovan.parks@gmail.com',
     packages=['genometreetk', 'genometreetk.markers'],
     scripts=['bin/genometreetk'],
-    package_data={'genometreetk' : ['VERSION'], '': ['distributions/*.txt']},
+    package_data={'genometreetk' : ['VERSION', 'cm_files/*'], '': ['distributions/*.txt']},
     url='http://pypi.python.org/pypi/genometreetk/',
     license='GPL3',
     description='A toolbox for working with genome trees.',
     install_requires=[
         "numpy >= 1.8.0",
-        "biolib >= 0.0.45",
+        "biolib >= 0.1.0",
         "dendropy >= 4.0.0"],
 )

@@ -91,7 +91,7 @@ class JackknifeTaxa(object):
         taxa_to_keep = set(taxa_to_keep).union(outgroup_ids)
 
         fout = open(output_file, 'w')
-        for seq_id, seq in msa.iteritems():
+        for seq_id, seq in msa.items():
             if seq_id in taxa_to_keep:
                 fout.write('>' + seq_id + '\n')
                 fout.write(seq + '\n')
@@ -136,11 +136,11 @@ class JackknifeTaxa(object):
         # calculate replicates
         #***self.logger.info('Calculating jackknife taxa replicates:')
         #***parallel = Parallel(self.cpus)
-        #***parallel.run(self._producer, None, xrange(num_replicates), self._progress)
+        #***parallel.run(self._producer, None, range(num_replicates), self._progress)
 
         # calculate support
         rep_tree_files = []
-        for rep_index in xrange(num_replicates):
+        for rep_index in range(num_replicates):
             rep_tree_files.append(os.path.join(self.replicate_dir, 'jk_taxa.tree.' + str(rep_index) + '.tre'))
 
         tree_support = TreeSupport()

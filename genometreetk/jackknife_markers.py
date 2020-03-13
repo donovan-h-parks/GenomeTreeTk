@@ -84,7 +84,7 @@ class JackknifeMarkers(object):
         output_file : str
           File to write bootstrapped alignment.
         """
-        markers_to_keep = random.sample(xrange(0, len(marker_lengths)), int(floor(perc_markers_to_keep * len(marker_lengths))))
+        markers_to_keep = random.sample(range(0, len(marker_lengths)), int(floor(perc_markers_to_keep * len(marker_lengths))))
 
         start_pos = [0]
         for index, ml in enumerate(marker_lengths):
@@ -97,7 +97,7 @@ class JackknifeMarkers(object):
             mask[start:end] = [1] * (end - start)
 
         fout = open(output_file, 'w')
-        for seq_id, seq in msa.iteritems():
+        for seq_id, seq in msa.items():
             fout.write('>' + seq_id + '\n')
             sub_seq = ''.join([base for base, m in zip(seq, mask) if m == 1])
             fout.write(sub_seq + '\n')
@@ -181,16 +181,16 @@ class JackknifeMarkers(object):
             
             if len(self.msa.values()[0]) != total_mask_len:
                 self.logger.error('Length of MSA does not meet length of mask.')
-                sys.exit()
+                sys.exit(-1)
 
             # calculate replicates
             self.logger.info('Calculating jackknife marker replicates:')
             parallel = Parallel(self.cpus)
-            parallel.run(self._producer, None, xrange(num_replicates), self._progress)
+            parallel.run(self._producer, None, range(num_replicates), self._progress)
 
             # calculate support
             self.logger.info('Calculating support for %d replicates.' % num_replicates)
-            for rep_index in xrange(num_replicates):
+            for rep_index in range(num_replicates):
                 rep_tree_files.append(os.path.join(self.replicate_dir, 'jk_markers.tree.' + str(rep_index) + '.tre'))
         else:
             for f in os.listdir(jk_dir):

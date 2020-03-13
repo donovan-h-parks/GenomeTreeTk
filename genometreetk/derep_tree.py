@@ -199,11 +199,11 @@ class DereplicateTree(object):
                 
         if not node_of_interest:
             self.logger.error('Could not find specified lineage of interest: %s' % lineage_of_interest)
-            sys.exit()
+            sys.exit(-1)
             
         if not outgroup_node:
             self.logger.error('Could not find outgroup: %s' % outgroup)
-            sys.exit()
+            sys.exit(-1)
                        
         # select taxa to retain
         self.logger.info('Selecting taxa to retain.')
