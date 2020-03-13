@@ -37,7 +37,8 @@ from numpy import (mean as np_mean,
                     argmin as np_argmin)
 
 from genometreetk.common import (parse_genome_path,
-                                    read_gtdb_ncbi_taxonomy)
+                                    read_gtdb_ncbi_taxonomy,
+                                    read_gtdb_taxonomy)
                                     
 from genometreetk.type_genome_utils import (GenomeRadius,
                                             symmetric_ani)
@@ -59,6 +60,7 @@ class ClusterStats(object):
         self.logger = logging.getLogger('timestamp')
         
         self.af_sp = af_sp
+        self.af_intragenomic = 0.25
         
         self.ani_cache = ANI_Cache(ani_cache_file, cpus)
         
@@ -115,70 +117,62 @@ class ClusterStats(object):
                     
         return nonrep_rep_count
 
-    def _find_closest_intragenus_rep(self, clusters, genome_files, ncbi_taxonomy):
+    def _find_closest_intragenus_rep(self, clusters, genome_files, gtdb_taxonomy):
         """Find closest intra-genus representative genomes."""
         
-        self.logger.info('Identifying closest intra-genus neighbours for representative genomes.')
-        
-        min_mash_ani = 85.0
-        
-        mash = Mash(self.cpus)
-        
-        # create Mash sketch for potential representative genomes
-        genome_list_file = os.path.join(self.output_dir, 'gtdb_type_genomes.lst')
-        sketch = os.path.join(self.output_dir, 'gtdb_type_genomes.msh')
-        mash.sketch(clusters.keys(), genome_files, genome_list_file, sketch)
-
-        # get Mash distances
-        mash_dist_file = os.path.join(self.output_dir, 'gtdb_type_genomes.dst')
-        mash.dist_pairwise((100-min_mash_ani)/100, sketch, mash_dist_file)
-
-        # read Mash distances
-        mash_ani = mash.read_ani(mash_dist_file)
-
-        # get pairs above Mash threshold
-        mash_ani_pairs = []
-        for qid in mash_ani:
-            for rid in mash_ani[qid]:
-                if qid == rid:
-                    continue
-                
-                ncbi_genusA = ncbi_taxonomy[qid][5]
-                ncbi_genusB = ncbi_taxonomy[rid][5]
-                if ncbi_genusA != ncbi_genusB:
-                    continue
-            
-                if mash_ani[qid][rid] >= min_mash_ani:
-                    if qid != rid:
-                        mash_ani_pairs.append((qid, rid))
-                        mash_ani_pairs.append((rid, qid))
-                
-        self.logger.info('Identified %d intra-genus genome pairs with a Mash ANI >= %.1f%%.' % (len(mash_ani_pairs), min_mash_ani))
-        
-        # calculate ANI between pairs
-        self.logger.info('Calculating ANI between %d genome pairs:' % len(mash_ani_pairs))
         if True: #***
-            ani_af = self.ani_cache.fastani_pairs(mash_ani_pairs, genome_files)
+            self.logger.info('Identifying closest intra-genus neighbours for representative genomes.')
+
+            ani_pairs = []
+            for gid1, gid2 in combinations(clusters, 2):
+                genusA = gtdb_taxonomy[gid1][5]
+                genusB = gtdb_taxonomy[gid2][5]
+                if genusA != genusB:
+                    continue
+
+                ani_pairs.append((gid1, gid2))
+                ani_pairs.append((gid2, gid1))
+                    
+            self.logger.info('Identified %d intra-genus genome pairs.' % len(ani_pairs))
+            
+            # calculate ANI between pairs
+            self.logger.info('Calculating ANI between %d genome pairs:' % len(ani_pairs))
+        
+            ani_af = self.ani_cache.fastani_pairs(ani_pairs, genome_files)
             pickle.dump(ani_af, open(os.path.join(self.output_dir, 'type_genomes_ani_af.pkl'), 'wb'))
         else:
+            self.logger.warning('Loading closest intra-genus neighbours from pickled file.')
             ani_af = pickle.load(open(os.path.join(self.output_dir, 'type_genomes_ani_af.pkl'), 'rb'))
             
         # find closest intra-genus pair for each rep
         closest_intragenus_rep = {}
+        intragenus_anis = defaultdict(list)
+        intragenus_afs = defaultdict(list)
+        intragenus_ani_count = 0
         for rid in clusters:
             if rid in ani_af:
-                closest_ani = 0
+                closest_ani = -1
+                closest_af = 0
                 closest_gid = None
                 for n_gid in ani_af[rid]:
                     ani, af = symmetric_ani(ani_af, rid, n_gid)
+
+                    intragenus_anis[rid].append(ani)
+                    intragenus_afs[rid].append(af)
+                    intragenus_ani_count += 1
+                    
                     if ani > closest_ani:
                         closest_ani = ani
+                        closest_af = af
                         closest_gid = n_gid
-                        
-                if n_gid:
-                    closest_intragenus_rep[rid] = (closest_gid, closest_ani)
+
+                if closest_gid:
+                    closest_intragenus_rep[rid] = (closest_gid, closest_ani, closest_af)
+                    
+        print('intragenus_ani_count', intragenus_ani_count)
+        print('closest_intragenus_rep', len(closest_intragenus_rep))
             
-        return closest_intragenus_rep
+        return closest_intragenus_rep, intragenus_anis, intragenus_afs
     
     def _parse_clusters(self, cluster_file):
         """Parse species clustering information."""
@@ -233,7 +227,7 @@ class ClusterStats(object):
                     gid_pairs.append((cid, rid))
                     gid_pairs.append((rid, cid))
                 
-                if False: #***
+                if True: #***
                     ani_af = self.ani_cache.fastani_pairs(gid_pairs, 
                                                             genome_files, 
                                                             report_progress=False)
@@ -259,11 +253,14 @@ class ClusterStats(object):
             
         return stats
         
-    def _pairwise_stats(self, clusters, genome_files, rep_stats):
+    def _pairwise_stats(self, clusters, species, genome_files, rep_stats):
         """Calculate statistics for all pairwise comparisons in a species cluster."""
         
         self.logger.info('Restricting pairwise comparisons to %d randomly selected genomes.' % self.max_genomes_for_stats)
         self.logger.info('Calculating statistics for all pairwise comparisons in a species cluster:')
+        
+        fout = open(os.path.join(self.output_dir, 'medoid_gids.tsv'), 'w')
+        fout.write('Species\tNo. genomes\tMedoid gid\tRepresentative gid\n')
         
         stats = {}
         for idx, (rid, cids) in enumerate(clusters.items()):
@@ -284,6 +281,12 @@ class ClusterStats(object):
                                                 mean_ani_to_medoid = -1,
                                                 mean_ani_to_rep = -1,
                                                 ani_below_95 = -1)
+                                                
+                fout.write('{}\t{}\t{}\t{}\n'.format(
+                            species[rid],
+                            1,
+                            rid,
+                            rid))
             else:
                 if len(cids) > self.max_genomes_for_stats:
                     cids = set(random.sample(cids, self.max_genomes_for_stats))
@@ -295,7 +298,7 @@ class ClusterStats(object):
                     gid_pairs.append((gid1, gid2))
                     gid_pairs.append((gid2, gid1))
                     
-                if False: #***
+                if True: #***
                     ani_af = self.ani_cache.fastani_pairs(gid_pairs, 
                                                         genome_files, 
                                                         report_progress=False)
@@ -319,6 +322,12 @@ class ClusterStats(object):
                     # natural medoid at least for reporting statistics for the
                     # individual species cluster
                     medoid_gid = rid
+                    
+                fout.write('{}\t{}\t{}\t{}\n'.format(
+                            species[rid],
+                            len(gids),
+                            medoid_gid,
+                            rid))
                     
                 mean_ani_to_medoid = np_mean([symmetric_ani(ani_af, gid, medoid_gid)[0] 
                                                 for gid in gids if gid != medoid_gid])
@@ -346,6 +355,8 @@ class ClusterStats(object):
                                                 ani_below_95 = sum([1 for ani in anis if ani < 95]))
 
         sys.stdout.write('\n')
+        
+        fout.close()
             
         return stats
         
@@ -403,6 +414,7 @@ class ClusterStats(object):
         # read the NCBI taxonomy
         self.logger.info('Reading NCBI taxonomy from GTDB metadata file.')
         ncbi_taxonomy, ncbi_update_count = read_gtdb_ncbi_taxonomy(metadata_file, None)
+        gtdb_taxonomy = read_gtdb_taxonomy(metadata_file)
 
         # get path to genome FASTA files
         self.logger.info('Reading path to genome FASTA files.')
@@ -421,64 +433,75 @@ class ClusterStats(object):
                 clustered_species[cid] = species[rid]
         
         # determine number of non-rep genomes with ANI radius of multiple rep genomes
-        if False:
-            nonrep_rep_count = self._find_multiple_reps(clusters, cluster_radius)
+        nonrep_rep_count = self._find_multiple_reps(clusters, cluster_radius)
+        
+        fout = open(os.path.join(self.output_dir, 'nonrep_rep_ani_radius_count.tsv'), 'w')
+        fout.write('Genome ID\tSpecies\tNo. rep radii\tMean radii')
+        fout.write('\t<0.25%\t<0.5%\t<0.75%\t<1%\t<1.5%\t<2%')
+        fout.write('\tDelta ANI to 2nd closest rep\tRep genomes IDs\n')
+        for gid, rid_info in nonrep_rep_count.items():
+            rids = [rid for rid, ani in rid_info]
+            anis = [ani for rid, ani in rid_info]
             
-            fout = open(os.path.join(self.output_dir, 'nonrep_rep_ani_radius_count.tsv'), 'w')
-            fout.write('Genome ID\tSpecies\tNo. rep radii\tMean radii')
-            fout.write('\t<0.25%\t<0.5%\t<0.75%\t<1%\t<1.5%\t<2%')
-            fout.write('\tRep genomes IDs\n')
-            for gid, rid_info in nonrep_rep_count.items():
-                rids = [rid for rid, ani in rid_info]
-                anis = [ani for rid, ani in rid_info]
-                
-                fout.write('%s\t%s\t%d\t%.2f' % (
-                                gid,
-                                clustered_species[gid],
-                                len(rids),
-                                np_mean([cluster_radius[rid].ani for rid in rids])))
-                
-                if len(anis) >= 2:
-                    max_ani = max(anis)
-                    ani_2nd = sorted(anis, reverse=True)[1]
-                    diff = max_ani - ani_2nd
-                    fout.write('\t%s' % (diff < 0.25))
-                    fout.write('\t%s' % (diff < 0.5))
-                    fout.write('\t%s' % (diff < 0.75))
-                    fout.write('\t%s' % (diff < 1.0))
-                    fout.write('\t%s' % (diff < 1.5))
-                    fout.write('\t%s' % (diff < 2.0))
-                else:
-                    fout.write('\tFalse\tFalse\tFalse\tFalse\tFalse\tFalse')
+            fout.write('%s\t%s\t%d\t%.2f' % (
+                            gid,
+                            clustered_species[gid],
+                            len(rids),
+                            np_mean([cluster_radius[rid].ani for rid in rids])))
+            
+            if len(anis) >= 2:
+                max_ani = max(anis)
+                ani_2nd = sorted(anis, reverse=True)[1]
+                diff = max_ani - ani_2nd
+                fout.write('\t%s' % (diff < 0.25))
+                fout.write('\t%s' % (diff < 0.5))
+                fout.write('\t%s' % (diff < 0.75))
+                fout.write('\t%s' % (diff < 1.0))
+                fout.write('\t%s' % (diff < 1.5))
+                fout.write('\t%s' % (diff < 2.0))
+                fout.write('\t%.3f' % diff)
+            else:
+                fout.write('\tFalse\tFalse\tFalse\tFalse\tFalse\tFalse\tN/A')
 
-                fout.write('\t%s\n' % ','.join(rids))
-            fout.close()
-
-            sys.exit(0)
-            
-            # find closest representative genome to each representative genome
-            closest_intragenus_rep = self._find_closest_intragenus_rep(clusters, genome_files, ncbi_taxonomy)
-            
-            fout = open(os.path.join(self.output_dir, 'closest_intragenus_rep.tsv'), 'w')
-            fout.write('Genome ID\tSpecies\tIntra-genus neighbour\tIntra-genus species\tANI\n')
-            for rid in closest_intragenus_rep:
-                nid, ani = closest_intragenus_rep[rid]
+            fout.write('\t%s\n' % ','.join(rids))
+        fout.close()
+        
+        # find closest representative genome to each representative genome
+        closest_intragenus_rep, intragenus_anis, intragenus_afs = self._find_closest_intragenus_rep(clusters, genome_files, gtdb_taxonomy)
+        
+        fout = open(os.path.join(self.output_dir, 'closest_intragenus_rep.tsv'), 'w')
+        fout.write('Genome ID\tSpecies\tIntra-genus neighbour\tIntra-genus species\tClosest ANI\tClosest AF\tIntra-genus ANIs\tIntra-genus AFs\n')
+        for rid in clusters:
+            if rid in closest_intragenus_rep:
+                nid, ani, af = closest_intragenus_rep[rid]
                 
-                fout.write('%s\t%s\t%s\t%s\t%.2f\n' % (
+                fout.write('%s\t%s\t%s\t%s\t%.2f\t%.2f\t%s\t%s\n' % (
                                 rid,
                                 species[rid],
                                 nid,
                                 species[nid],
-                                ani))
-            fout.close()
-            
-            sys.exit(0)
+                                ani,
+                                af,
+                                ','.join(['%.2f' % ani for ani in intragenus_anis[rid]]),
+                                ','.join(['%.3f' % af for af in intragenus_afs[rid]])))
+            else:
+                fout.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(
+                                rid,
+                                species[rid],
+                                'N/A',
+                                'N/A',
+                                'N/A',
+                                'N/A',
+                                'N/A',
+                                'N/A'))
+                
+        fout.close()
 
         # identify statistics relative to representative genome
         rep_stats = self._rep_genome_stats(clusters, genome_files)
         
         # identify pairwise statistics
-        pairwise_stats = self._pairwise_stats(clusters, genome_files, rep_stats)
+        pairwise_stats = self._pairwise_stats(clusters, species, genome_files, rep_stats)
         
         # report statistics
         stats_file = os.path.join(self.output_dir, 'cluster_stats.tsv')

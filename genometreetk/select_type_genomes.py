@@ -73,7 +73,7 @@ class SelectTypeGenomes(object):
         self.min_intra_strain_ani = 99.0
         self.min_mash_ani = 90.0
         
-        self.max_ani_neighbour = 97.0
+        self.max_ani_neighbour = 97
         
         self.ani_cache = ANI_Cache(ani_cache_file, cpus)
         
@@ -953,7 +953,7 @@ class SelectTypeGenomes(object):
         # calculate ANI between pairs
         gid_pairs = mash_ani_pairs + genus_ani_pairs
         self.logger.info('Calculating ANI between %d genome pairs:' % len(gid_pairs))
-        if True: #***
+        if False: #***
             ani_af = self.ani_cache.fastani_pairs(gid_pairs, genome_files)
             pickle.dump(ani_af, open(os.path.join(self.output_dir, 'type_genomes_ani_af.pkl'), 'wb'))
         else:
@@ -1070,7 +1070,9 @@ class SelectTypeGenomes(object):
                                         metadata_file):
         """Resolve type genomes that have ANI neighbours deemed to be too close."""
 
-        self.logger.info('Resolving %d type genomes with one or more neighbours within a %.1f%% ANI radius.' % (len(ani_neighbours), self.max_ani_neighbour))
+        self.logger.info('Resolving %d type genomes with one or more neighbours within a %.1f%% ANI radius.' % (
+                            len(ani_neighbours), 
+                            self.max_ani_neighbour))
         
         # get priority dates
         year_of_priority = self._year_of_priority(metadata_file, ncbi_taxonomy)
@@ -1120,7 +1122,7 @@ class SelectTypeGenomes(object):
             else:
                 type_status['DN'].append(gid)
                 gid_type_status[gid] = 'DN'
-                
+
         self.logger.info('  TS = %d; NTS = %d; NP = %d; NR = %d; TSS = %d; DN = %d' % (len(type_status['TS']),
                                                                                 len(type_status['NT']),
                                                                                 len(type_status['NP']),
@@ -1158,7 +1160,7 @@ class SelectTypeGenomes(object):
                     
                 # add type genome to exclusion list
                 excluded_gids.append(cur_gid)
-                
+
         # reinstate excluded genomes from most to least official in terms of type status
         # (this resolves transitive cases: A is synonym of B which is a synonym of C)
         final_excluded_gids = set(excluded_gids)
@@ -1166,8 +1168,10 @@ class SelectTypeGenomes(object):
             if len(ani_neighbours[gid] - final_excluded_gids) == 0:
                 # genome can be reinstated
                 final_excluded_gids.remove(gid)
-                
-        self.logger.info('Identified %d type genomes for exclusion.', len(final_excluded_gids))
+
+        self.logger.info('Identified {} genomes for exclusion, including {} type strain of species.'.format(
+                            len(final_excluded_gids),
+                            sum([1 for gid in final_excluded_gids if gid_type_status[gid] == 'TS'])))
                 
         # write out details about excluded genomes
         fout = open(os.path.join(self.output_dir, 'gtdb_excluded_ani_neighbours.tsv'), 'w')
@@ -1200,7 +1204,7 @@ class SelectTypeGenomes(object):
                     self.logger.info('Type genomes %s still has ANI neighbours.' % gid)
                     sys.exit(-1)
         
-        return final_excluded_gids
+        return final_excluded_gids, gid_type_status
         
     def write_final_type_genomes(self, initial_type_genomes_file, excluded_gids):
         """Write out final set of selected type genomes."""
@@ -1231,6 +1235,8 @@ class SelectTypeGenomes(object):
                             ani_af,
                             ani_neighbours,
                             excluded_gids,
+                            gid_type_status,
+                            gtdb_type_genus,
                             gtdb_type_sp,
                             ncbi_type_sp,
                             type_metadata,
@@ -1242,11 +1248,16 @@ class SelectTypeGenomes(object):
         
         gid_to_species = genome_species_assignments(ncbi_taxonomy)
         
+        # get genomes that are the type species of genus
+        type_species_of_genus = set()
+        for gids in gtdb_type_genus.values():
+            type_species_of_genus.update(gids)
+        
         out_file = os.path.join(self.output_dir, 'synonyms.tsv')
         self.logger.info('Writing synonyms to: %s' % out_file)
         fout = open(out_file, 'w')
-        fout.write('NCBI species\tType genome\tStrain IDs\tType sources\tPriority year\tNCBI assembly type')
-        fout.write('\tSynonym\tSynonym type genome\tSynonym strain IDs\tSynonym type sources\tPriority year\tSynonym NCBI assembly type')
+        fout.write('Species\tRepresentative\tStrain IDs\tType sources\tPriority year\tType strain of species\tType strain of genus')
+        fout.write('\tSynonym\tSynonym representative\tSynonym strain IDs\tSynonym type sources\tPriority year\tType strain of species\tType strain of genus')
         fout.write('\tANI\tAF\n')
         
         # find closest neighbour for each excluded genome ID and 
@@ -1254,34 +1265,57 @@ class SelectTypeGenomes(object):
         for ex_gid in excluded_gids:
             closest_ani = 0
             closest_gid = None
+            closest_year = 10000
             for n_gid in ani_neighbours[ex_gid]:
                 if n_gid in excluded_gids:
                     continue
                     
-                ani, af = symmetric_ani(ani_af, ex_gid, n_gid)
-                if ani > closest_ani:
-                    closest_ani = ani
-                    closest_gid = n_gid
+                if gid_type_status[ex_gid] == 'TS' and gid_type_status[n_gid] == 'TS':
+                    # if the genome is a type strain of the species, the retained
+                    # genome must also be a type strain of the species and follow
+                    # rules of priority
+                    if year_of_priority[gid_to_species[n_gid]] < closest_year:
+                        closest_ani = ani
+                        closest_gid = n_gid
+                        closest_year = year_of_priority[gid_to_species[n_gid]]
+                else:
+                    ani, af = symmetric_ani(ani_af, ex_gid, n_gid)
+                    if ani > closest_ani:
+                        closest_ani = ani
+                        closest_gid = n_gid
+                    
+            if not closest_gid:
+                self.logger.error('Unable to find suitable synonym: {}'.format(ex_gid))
+                sys.exit(-1)
+                
+            # sanity check
+            if gid_type_status[ex_gid] == 'TS':
+                if closest_year > year_of_priority.get(gid_to_species[ex_gid], 10000):
+                    if closest_gid not in type_species_of_genus:
+                        self.logger.warning('Priority is not preserved for: {}'.format(ex_gid))
+                        sys.exit(-1)
 
             closest_sp = gid_to_species[closest_gid]
             ex_sp = gid_to_species[ex_gid]
 
             ani, af = symmetric_ani(ani_af, ex_gid, closest_gid)
 
-            fout.write('%s\t%s\t%s\t%s\t%s\t%s' % (
+            fout.write('%s\t%s\t%s\t%s\t%s\t%s\t%s' % (
                         closest_sp,
                         closest_gid,
                         ','.join(sorted(type_metadata[closest_gid].ncbi_strain_identifiers)),
                         ','.join(sorted(type_metadata[closest_gid].gtdb_type_designation_sources)).upper().replace('STRAININFO', 'StrainInfo'),
                         str(year_of_priority.get(closest_sp, 'n/a')),
-                        type_metadata[closest_gid].ncbi_type_material_designation))
-            fout.write('\t%s\t%s\t%s\t%s\t%s\t%s' % (
+                        gid_type_status[closest_gid] == 'TS',
+                        closest_gid in type_species_of_genus))
+            fout.write('\t%s\t%s\t%s\t%s\t%s\t%s\t%s' % (
                         ex_sp,
                         ex_gid,
                         ','.join(sorted(type_metadata[ex_gid].ncbi_strain_identifiers)),
                         ','.join(sorted(type_metadata[ex_gid].gtdb_type_designation_sources)).upper().replace('STRAININFO', 'StrainInfo'),
                         str(year_of_priority.get(ex_sp, 'n/a')),
-                        type_metadata[ex_gid].ncbi_type_material_designation))
+                        gid_type_status[ex_gid] == 'TS',
+                        ex_gid in type_species_of_genus))
             fout.write('\t%.2f\t%.2f\n' % (ani, af))
  
     def run(self, qc_file,
@@ -1414,7 +1448,7 @@ class SelectTypeGenomes(object):
                                             ncbi_type_subsp,
                                             ncbi_reps)
         
-        if True: #***
+        if False: #***
             type_genomes = self._select_type_genomes(passed_qc,
                                                         genome_files,
                                                         genome_quality,
@@ -1439,7 +1473,7 @@ class SelectTypeGenomes(object):
         # calculate ANI between type genomes and resolve cases where type genomes have close ANI neighbours
         ani_af = self._ani_type_genomes(genome_files, type_genomes, ncbi_taxonomy)
         ani_neighbours = self._ani_neighbours(ani_af, type_genomes, ncbi_taxonomy)
-        excluded_gids = self._resolve_close_ani_neighbours(ani_neighbours,
+        excluded_gids, gid_type_status = self._resolve_close_ani_neighbours(ani_neighbours,
                                                             gtdb_type_genus,
                                                             gtdb_type_sp, 
                                                             gtdb_type_subsp,
@@ -1456,6 +1490,8 @@ class SelectTypeGenomes(object):
         self.write_synonym_table(ani_af,
                                     ani_neighbours, 
                                     excluded_gids, 
+                                    gid_type_status,
+                                    gtdb_type_genus,
                                     gtdb_type_sp, 
                                     ncbi_type_sp,
                                     type_metadata,

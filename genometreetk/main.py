@@ -447,6 +447,7 @@ class OptionsParser():
         check_file_exists(options.gtdb_metadata_file)
         check_file_exists(options.gtdb_final_clusters)
         check_file_exists(options.species_exception_file)
+        check_file_exists(options.gtdb_domain_report)
 
         try:
             p = TreeGIDs()
@@ -454,6 +455,7 @@ class OptionsParser():
                     options.gtdb_metadata_file,
                     options.gtdb_final_clusters,
                     options.species_exception_file,
+                    options.gtdb_domain_report,
                     options.output_dir)
         except GenomeTreeTkError as e:
             print e.message
@@ -745,6 +747,38 @@ class OptionsParser():
 
         self.logger.info('Stripped tree written to: %s' % options.output_tree)
         
+    def rm_support(self, options):
+        """Remove support values from tree."""
+
+        check_file_exists(options.input_tree)
+
+        outgroup_in_tree = set()
+        tree = dendropy.Tree.get_from_path(options.input_tree,
+                                            schema='newick',
+                                            rooting='force-rooted',
+                                            preserve_underscores=True)
+
+        for node in tree.internal_nodes():
+            if node.label:
+                if ':' in node.label:
+                    support, taxa = node.label.split(':')
+                    node.label = taxa
+                else:
+                    try:
+                        # if number if a float (or int) treat
+                        # it as a support value
+                        f = float(node.label)
+                        node.label = None
+                    except ValueError:
+                        pass # keep other labels
+
+        tree.write_to_path(options.output_tree,
+                            schema='newick',
+                            suppress_rooting=True,
+                            unquoted_underscores=True)
+
+        self.logger.info('Stripped tree written to: %s' % options.output_tree)
+        
     def pull(self, options):
         """Create taxonomy file from a decorated tree."""
 
@@ -811,34 +845,29 @@ class OptionsParser():
         check_file_exists(options.taxa_list)
         
         pd = PhylogeneticDiversity()
-        rtn = pd.pd(options.tree, options.taxa_list, options.rep_list, options.per_taxa_pg_file)
-        
-        total_pd, in_taxa, in_taxa_derep, in_pd, out_taxa, out_taxa_derep, out_pd = rtn
-        total_taxa = in_taxa + out_taxa
-        total_taxa_derep = in_taxa_derep + out_taxa_derep
+        rtn = pd.pd(options.tree, options.taxa_list, options.per_taxa_pg_file)
+        total_pd, num_in_taxa, in_pd, num_out_taxa, out_pd = rtn
+        total_taxa = num_in_taxa + num_out_taxa
         in_pg = total_pd - out_pd
                                             
         # report phylogenetic diversity (PD) and gain (PG)
         print ''
-        print '\tNo. Taxa\tNo. Dereplicated Taxa\tPD\tPercent PD'
+        print '\tNo. Taxa\tPD\tPercent PD'
         
-        print '%s\t%d\t%d\t%.2f\t%.2f%%' % ('Full tree', total_taxa, total_taxa_derep, total_pd, 100)
+        print '%s\t%d\t%.2f\t%.2f%%' % ('Full tree', total_taxa, total_pd, 100)
         
-        print '%s\t%d\t%d\t%.2f\t%.3f%%' % ('Outgroup taxa (PD)',
-                                            out_taxa,
-                                            out_taxa_derep,
+        print '%s\t%d\t%.2f\t%.3f%%' % ('Outgroup taxa (PD)',
+                                            num_out_taxa,
                                             out_pd, 
                                             out_pd * 100 / total_pd)
 
-        print '%s\t%d\t%d\t%.2f\t%.3f%%' % ('Ingroup taxa (PD)',
-                                            in_taxa,
-                                            in_taxa_derep,
+        print '%s\t%d\t%.2f\t%.3f%%' % ('Ingroup taxa (PD)',
+                                            num_in_taxa,
                                             in_pd, 
                                             (in_pd) * 100 / total_pd)   
                                         
-        print '%s\t%d\t%d\t%.2f\t%.3f%%' % ('Ingroup taxa (PG)',
-                                            in_taxa,
-                                            in_taxa_derep,
+        print '%s\t%d\t%.2f\t%.3f%%' % ('Ingroup taxa (PG)',
+                                            num_in_taxa,
                                             in_pg, 
                                             in_pg * 100 / total_pd)
                   
@@ -848,8 +877,9 @@ class OptionsParser():
         check_file_exists(options.decorated_tree)
         
         pd = PhylogeneticDiversity()
-        pd.pd_clade(options.decorated_tree, options.output_file, options.taxa_list, options.rep_list)
-        
+        pd.pd_clade(options.decorated_tree, 
+                    options.taxa_list, 
+                    options.output_file)
         
     def arb_records(self, options):
         """Create an ARB records file from GTDB metadata."""
@@ -918,6 +948,8 @@ class OptionsParser():
             self.fill_ranks(options)
         elif options.subparser_name == 'strip':
             self.strip(options)
+        elif options.subparser_name == 'rm_support':
+            self.rm_support(options)
         elif options.subparser_name == 'pull':
             self.pull(options)
         elif options.subparser_name == 'append':

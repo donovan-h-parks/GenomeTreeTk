@@ -183,17 +183,24 @@ class ClusterNamedTypes(object):
         for rep_id in type_radius:
             clusters[rep_id] = []
             
+        transitive_cases = set()
+        num_outside_closest_rep_radius = 0
+        num_no_rep = 0
+        multi_reps = set()
+        num_single_rep = 0
         for idx, nontype_gid in enumerate(nontype_gids):
             if idx % 100 == 0:
                 sys.stdout.write('==> Processed %d of %d genomes.\r' % (idx+1, len(nontype_gids)))
                 sys.stdout.flush()
                 
             if nontype_gid not in ani_af:
+                num_no_rep += 1
                 continue
 
             closest_type_gid = None
             closest_ani = 0
             closest_af = 0
+            num_rep_radii = 0
             for type_gid in type_radius:
                 if type_gid not in ani_af[nontype_gid]:
                     continue
@@ -201,6 +208,9 @@ class ClusterNamedTypes(object):
                 ani, af = symmetric_ani(ani_af, type_gid, nontype_gid)
                 
                 if af >= self.af_sp:
+                    if ani > type_radius[type_gid].ani:
+                        num_rep_radii += 1
+                        
                     if ani > closest_ani or (ani == closest_ani and af > closest_af):
                         closest_type_gid = type_gid
                         closest_ani = ani
@@ -208,16 +218,50 @@ class ClusterNamedTypes(object):
                 
             if closest_type_gid:
                 if closest_ani > type_radius[closest_type_gid].ani:
+                    assert(num_rep_radii >= 1)
+                    if num_rep_radii > 1:
+                        multi_reps.add(nontype_gid)
+                    else:
+                        num_single_rep += 1
+                        
                     clusters[closest_type_gid].append(self.ClusteredGenome(gid=nontype_gid, 
                                                                             ani=closest_ani, 
                                                                             af=closest_af))
+                else:
+                    num_outside_closest_rep_radius += 1
+                    if num_rep_radii >= 1:
+                        transitive_cases.add(nontype_gid)
+            else:
+                num_no_rep += 1
+                        
                 
         sys.stdout.write('==> Processed %d of %d genomes.\r' % (idx, 
                                                                 len(nontype_gids)))
         sys.stdout.flush()
         sys.stdout.write('\n')
 
-        self.logger.info('Assigned %d genomes to representatives.' % sum([len(clusters[type_gid]) for type_gid in clusters]))
+        num_clustered = sum([len(clusters[type_gid]) for type_gid in clusters])
+        assert(num_clustered == num_single_rep + len(multi_reps))
+        self.logger.info('Assigned %d genomes to representatives.' % num_clustered)
+        self.logger.info(' ... %d genomes satisfied the clustering criteria of only 1 representative.' % num_single_rep)
+        self.logger.info(' ... %d genomes satisfied the clustering criteria of >1 representative.' % len(multi_reps))
+
+        num_unclustered = len(nontype_gids) - num_clustered
+        assert(num_unclustered == num_no_rep + num_outside_closest_rep_radius)
+        self.logger.info('There were %d genomes that could not be assigned to a representatives.' % num_unclustered)
+        self.logger.info(' ... %d genomes were not assigned as they did not meeting the clustering criteria of any representatives.' % num_no_rep)
+        self.logger.info(' ... %d genomes were not assigned as they did not meeting the clustering criteria of the closest genome.' % num_outside_closest_rep_radius)
+        self.logger.info(' ..... %d genomes were within the ANI radius of >=1 other representatives (i.e. transitive case).' % len(transitive_cases))
+        
+        fout = open(os.path.join(self.output_dir, 'multi_reps_gids.lst'), 'w')
+        for gid in multi_reps:
+            fout.write(gid + '\n')
+        fout.close()
+        
+        fout = open(os.path.join(self.output_dir, 'transitive_nontype_gids.lst'), 'w')
+        for gid in transitive_cases:
+            fout.write(gid + '\n')
+        fout.close()
         
         return clusters
 

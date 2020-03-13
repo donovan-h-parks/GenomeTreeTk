@@ -1,3 +1,13 @@
+0.0.55
+- added rm_support
+- bootstrap command will not look for files with the extension '.treefile'
+
+0.0.54
+- modified PD calculations when ingroup does not encompass root node; this
+  makes PD a rooted tree calculation, but this is probably best for most
+  situations
+- simplified interface to PD calculations to remove notion of representative genomes
+
 0.0.53
 - better handling of support values when 'stripping' a tree
 

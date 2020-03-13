@@ -71,23 +71,14 @@ def print_help():
       fill_ranks -> Ensure all taxonomy strings contain all 7 canonical ranks
       propagate  -> Propagate labels from representatives to all genomes in a cluster
       strip      -> Remove taxonomic labels from a tree (useful for re-decorating)
+      rm_support -> Remove support values from tree
       pull       -> Create taxonomy file from a decorated tree
       append     -> Append taxonomy to extant tree labels
       
     Phylogenetic diversity:
       pd       -> Calculate phylogenetic diversity of specified taxa
       pd_clade -> Calculate phylogenetic diversity of all named groups
-      
-    Select representative genomes:
-      qc_genomes          -> Quality check all potential GTDB genomes
-      select_type_genomes -> Select type genomes for named species
-      cluster_named_types -> Cluster genomes to selected GTDB type genomes
-      cluster_de_novo     -> Infer de novo species clusters and type genomes for remaining NCBI genomes
-      cluster_user        -> Cluster User genomes to GTDB species clusters, no new representatives are selected
-      tree_gids           -> Determine bacterial and archaeal genomes for canonical and validation trees
-      rep_compare         -> Compare current and previous representatives
-      cluster_stats       -> Calculate statistics for species clusters
-      
+
     Assign genomes to canonical genome set:
       assign -> Assign genomes to canonical genomes comprising GTDB reference tree
       
@@ -99,6 +90,20 @@ def print_help():
   Feature requests or bug reports can be sent to Donovan Parks (donovan.parks@gmail.com)
     or posted on GitHub (https://github.com/dparks1134/GenomeTreeTk).
     '''
+
+# *** This should be formally removed from the GenomeTreeTk as
+# this functionality is now in the GTDB Species Cluster Toolkit.
+"""
+    Select representative genomes:
+      qc_genomes          -> Quality check all potential GTDB genomes
+      select_type_genomes -> Select type genomes for named species
+      cluster_named_types -> Cluster genomes to selected GTDB type genomes
+      cluster_de_novo     -> Infer de novo species clusters and type genomes for remaining NCBI genomes
+      cluster_user        -> Cluster User genomes to GTDB species clusters, no new representatives are selected
+      tree_gids           -> Determine bacterial and archaeal genomes for canonical and validation trees
+      rep_compare         -> Compare current and previous representatives
+      cluster_stats       -> Calculate statistics for species clusters
+"""
 
 def logger_setup(output_dir, silent):
     """Set logging for application.
@@ -230,7 +235,7 @@ if __name__ == '__main__':
     bootstrap_parser.add_argument('input_tree', help="tree inferred from original data")
     bootstrap_parser.add_argument('msa_file', help="file containing multiple sequence alignment  (or 'NONE' if '--boot_dir' is given)")
     bootstrap_parser.add_argument('output_dir', help="output directory")
-    bootstrap_parser.add_argument('--boot_dir', help="directory containing pre-computed bootstrap trees (must have '.tree' or '.tre' extension)")
+    bootstrap_parser.add_argument('--boot_dir', help="directory containing pre-computed bootstrap trees (must have '.tree', '.tre', or '.treefile' extension)")
     bootstrap_parser.add_argument('-b', '--base_type', choices=['nt', 'prot'], help="indicates if bases are nucleotides or amino acids", default='prot')
     bootstrap_parser.add_argument('-m', '--model', choices=['wag', 'lg', 'jtt'], help="model of evolution to use", default='wag')
     bootstrap_parser.add_argument('-g', '--gamma', action='store_true', help="indicates that the GAMMA model should be used")
@@ -401,6 +406,7 @@ if __name__ == '__main__':
     tree_gids.add_argument('gtdb_metadata_file', help="metadata file from GTDB with CheckM estimates for all genomes (TSV file)")
     tree_gids.add_argument('gtdb_final_clusters', help="species clusters for GTDB (gtdb_clusters_final.tsv from cluster_de_novo")
     tree_gids.add_argument('species_exception_file', help="file listing species names for select genomes to override NCBI names")
+    tree_gids.add_argument('gtdb_domain_report', help="GTDB report of number of bac120 and ar122 marker genes (gtdb power domain_report)")
     tree_gids.add_argument('output_dir', help='output directory')
     tree_gids.add_argument('--silent', help="suppress output", action='store_true')
 
@@ -464,6 +470,14 @@ if __name__ == '__main__':
     strip_parser.add_argument('output_tree', help="output tree")
     strip_parser.add_argument('--silent', help="suppress output", action='store_true')
     
+    # remove support values from tree
+    rm_support_parser = subparsers.add_parser('rm_support',
+                                        formatter_class=CustomHelpFormatter,
+                                        description='Remove support values from tree.')
+    rm_support_parser.add_argument('input_tree', help="tree to strip")
+    rm_support_parser.add_argument('output_tree', help="output tree")
+    rm_support_parser.add_argument('--silent', help="suppress output", action='store_true')
+    
     # pull taxonomy from a tree
     pull_parser = subparsers.add_parser('pull',
                                         formatter_class=CustomHelpFormatter,
@@ -487,8 +501,7 @@ if __name__ == '__main__':
                                         formatter_class=CustomHelpFormatter,
                                         description='Calculate phylogenetic diversity of specified taxa.')
     pd_parser.add_argument('tree', help='newick tree')
-    pd_parser.add_argument('taxa_list', help='list of ingroup taxa, one per line, to calculated PD over (including genomes of interest assigned to a representative)')
-    pd_parser.add_argument('--rep_list', help='list of representatives in tree and the genomes they represent')
+    pd_parser.add_argument('taxa_list', help='list of ingroup taxa, one per line, to calculated PD over')
     pd_parser.add_argument('--per_taxa_pg_file', help='file to record phylogenetic gain of each ingroup taxa relative to the outgroup')
     pd_parser.add_argument('--silent', help="suppress output", action='store_true')
     
@@ -497,9 +510,8 @@ if __name__ == '__main__':
                                         formatter_class=CustomHelpFormatter,
                                         description='Calculate phylogenetic diversity of named groups.')
     pd_clade_parser.add_argument('decorated_tree', help='tree with labeled internal nodes')
+    pd_clade_parser.add_argument('taxa_list', help='list of ingroup taxa, one per line, to calculated PD over')
     pd_clade_parser.add_argument('output_file', help='output file')
-    pd_clade_parser.add_argument('--taxa_list', help='list of ingroup taxa, one per line, to calculated PD over (including genomes of interest assigned to a representative)')
-    pd_clade_parser.add_argument('--rep_list', help='list of representatives in tree and the genomes they represent')
     pd_clade_parser.add_argument('--silent', help="suppress output", action='store_true')
     
     # create an ARB records file from GTDB metadata

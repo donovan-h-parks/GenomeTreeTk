@@ -51,12 +51,14 @@ class Bootstrap(object):
         """
 
         output_msa = os.path.join(self.replicate_dir, 'bootstrap_msa.r_' + str(replicated_num) + '.fna')
-        bootstrap_alignment(self.msa, output_msa, frac=self.frac)
-
-        fast_tree = FastTree(multithreaded=False)
         output_tree = os.path.join(self.replicate_dir, 'bootstrap_tree.r_' + str(replicated_num) + '.tree')
         fast_tree_output = os.path.join(self.replicate_dir, 'bootstrap_fasttree.r_' + str(replicated_num) + '.out')
-        fast_tree.run(output_msa, self.base_type, self.model, self.gamma, output_tree, fast_tree_output)
+        if os.path.exists(output_tree) and os.path.getsize(output_tree) > 0:
+            self.logger.warning('Skipping {} as it already exists.'.format(output_tree))
+        else:
+            bootstrap_alignment(self.msa, output_msa, frac=self.frac)
+            fast_tree = FastTree(multithreaded=False)
+            fast_tree.run(output_msa, self.base_type, self.model, self.gamma, output_tree, fast_tree_output)
 
         return True
 
@@ -120,7 +122,7 @@ class Bootstrap(object):
                 rep_tree_files.append(os.path.join(self.replicate_dir, 'bootstrap_tree.r_' + str(rep_index) + '.tree'))
         else:
             for f in os.listdir(boot_dir):
-                if f.endswith('.tree') or f.endswith('.tre'):
+                if f.endswith('.tree') or f.endswith('.tre') or f.endswith('.treefile'):
                     rep_tree_files.append(os.path.join(boot_dir, f))
             self.logger.info('Read %d bootstrap replicates.' % len(rep_tree_files))
           

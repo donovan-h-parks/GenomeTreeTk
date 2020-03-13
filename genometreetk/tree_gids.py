@@ -117,6 +117,7 @@ class TreeGIDs(object):
                 gtdb_metadata_file,
                 gtdb_final_clusters,
                 species_exception_file,
+                gtdb_domain_report,
                 output_dir):
         """Quality check all potential GTDB genomes."""
         
@@ -124,6 +125,14 @@ class TreeGIDs(object):
         self.logger.info('Reading QC file.')
         passed_qc = read_qc_file(qc_file)
         self.logger.info('Identified %d genomes passing QC.' % len(passed_qc))
+        
+        # get predicted domain for each genome
+        predicted_domain = {}
+        with open(gtdb_domain_report) as f:
+            f.readline()
+            for line in f:
+                line_split = line.strip().split('\t')
+                predicted_domain[line_split[0]] = line_split[1]
         
         # get GTDB and NCBI taxonomy strings for each genome
         self.logger.info('Reading NCBI and GTDB taxonomy from GTDB metadata file.')
@@ -181,6 +190,7 @@ class TreeGIDs(object):
    
         for rid in sp_clusters:
             domain = prev_gtdb_taxonomy[rid][0]
+            assert(domain == predicted_domain[rid])
             if domain == 'd__Bacteria':
                 fout_val = fout_bac_val
                 fout_can = fout_bac_can

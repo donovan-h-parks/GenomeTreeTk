@@ -106,11 +106,11 @@ def symmetric_ani(ani_af, gid1, gid2):
     
     # ANI should be the larger of the two values as this
     # is the most conservative circumscription and reduces the
-    # change of creating polyphyletic species clusters
+    # chance of creating polyphyletic species clusters
     ani = max(rev_ani, cur_ani)
     
     # AF should be the larger of the two values in order to 
-    # accomodate incomplete and contaminated genomes
+    # accommodate incomplete and contaminated genomes
     af = max(rev_af, cur_af)
     
     return ani, af
@@ -123,7 +123,7 @@ def quality_score(gids, quality_metadata):
     for gid in gids:
         metadata = quality_metadata[gid]
     
-        # check if genome appears to complete consist of only an unspanned
+        # check if genome appears to consist of only an unspanned
         # chromosome and unspanned plasmids and thus should be considered
         # very high quality
         if (metadata.ncbi_assembly_level 
@@ -192,19 +192,28 @@ def parse_marker_percentages(gtdb_domain_report):
             domain = line_split[domain_index]
             bac_perc = float(line_split[bac_marker_perc_index])
             ar_perc = float(line_split[ar_marker_perc_index])
-            ncbi_domain = [t.strip() for t in line_split[ncbi_taxonomy_index]][0]
-            gtdb_domain = [t.strip() for t in line_split[gtdb_taxonomy_index]][0]
-            if ncbi_domain != gtdb_domain:
-                print('[***WARNING***] NCBI and GTDB domains disagree in domain report: {}'.format(gid))
+            ncbi_domain = [t.strip() for t in line_split[ncbi_taxonomy_index].split(';')][0]
+            gtdb_domain = [t.strip() for t in line_split[gtdb_taxonomy_index].split(';')][0]
+            if ncbi_domain != 'None' and ncbi_domain != gtdb_domain:
+                print('[***WARNING***] NCBI and GTDB domains disagree in domain report: {} {} {}'.format(
+                            gid, 
+                            ncbi_domain, 
+                            gtdb_domain))
             
             if domain == 'd__Bacteria':
                 marker_perc[gid] = bac_perc
-                if ncbi_domain != 'd__Bacteria':
-                    print('[***WARNING***] NCBI domains disagrees with predicted domain: {}'.format(gid))
-            else:
+                if ncbi_domain != 'None' and ncbi_domain != 'd__Bacteria':
+                    print('[***WARNING***] NCBI domains disagrees with predicted domain: {} {} {}'.format(
+                            gid, 
+                            ncbi_domain, 
+                            domain))
+            elif domain == 'd__Archaea':
                 marker_perc[gid] = ar_perc
-                if ncbi_domain != 'd__Archaea':
-                    print('[***WARNING***] NCBI domains disagrees with predicted domain: {}'.format(gid))
+                if ncbi_domain != 'None' and ncbi_domain != 'd__Archaea':
+                    print('[***WARNING***] NCBI domains disagrees with predicted domain: {} {} {}'.format(
+                            gid, 
+                            ncbi_domain, 
+                            domain))
 
     return marker_perc
     
@@ -380,6 +389,7 @@ def read_qc_file(qc_file):
             passed_qc.add(line_split[0])
             
     return passed_qc
+    
     
 def read_quality_metadata(metadata_file):
     """Read statistics needed to determine genome quality."""

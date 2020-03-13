@@ -45,14 +45,14 @@ class Mash(object):
         
     def _mash_genome_id(self, mash_genome_id):
         """Extract canonical GTDB genome ID from Mash results."""
-            
+        
         mash_genome_id = ntpath.basename(mash_genome_id)
         mash_genome_id = mash_genome_id[0:mash_genome_id.find('_', 4)]
         if mash_genome_id.startswith('GCF_'):
             mash_genome_id = 'RS_' + mash_genome_id
         elif mash_genome_id.startswith('GCA_'):
             mash_genome_id = 'GB_' + mash_genome_id
-            
+
         return mash_genome_id
 
     def sketch(self, gids, genome_files, genome_list_file, sketch_file):

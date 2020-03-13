@@ -343,8 +343,13 @@ class ClusterDeNovo(object):
                             len(clusters), 
                             len(genomes_to_cluster),
                             len(ani_pairs)))
-        ani_af = self.ani_cache.fastani_pairs(ani_pairs, genome_files)
-
+        
+        if True:
+            ani_af = self.ani_cache.fastani_pairs(ani_pairs, genome_files)
+            pickle.dump(ani_af, open(os.path.join(self.output_dir, 'ani_af_type_vs_nontype.de_novo.pkl'), 'wb'))
+        else:
+            ani_af = pickle.load(open(os.path.join(self.output_dir, 'ani_af_type_vs_nontype.de_novo.pkl'), 'rb'))
+        
         # assign genomes to closest representatives 
         # that is within the representatives ANI radius
         self.logger.info('Assigning genomes to closest representative.')
@@ -355,13 +360,13 @@ class ClusterDeNovo(object):
             for rep_gid in clusters:
                 ani, af = symmetric_ani(ani_af, cur_gid, rep_gid)
                 
-                if ani >= final_cluster_radius[rep_gid].ani and af >= self.af_sp:
+                if af >= self.af_sp:
                     if ani > closest_rep_ani or (ani == closest_rep_ani and af > closest_rep_af):
                         closest_rep_gid = rep_gid
                         closest_rep_ani = ani
                         closest_rep_af = af
                 
-            if closest_rep_gid:
+            if closest_rep_gid and closest_rep_ani >= final_cluster_radius[closest_rep_gid].ani: #***
                 clusters[closest_rep_gid].append(self.ClusteredGenome(gid=cur_gid, 
                                                                         ani=closest_rep_ani, 
                                                                         af=closest_rep_af))

@@ -54,73 +54,11 @@ class PhylogeneticDiversity():
                     total_taxa += 1
                     
         return total_pd, total_taxa
-        
-    def _read_reps(self, rep_list):
-        """Read genomes assigned to a representative."""
-        
-        genome_reps = {}
-        
-        if rep_list:
-            for line in open(rep_list):
-                line_split = line.strip().split('\t')
-                
-                rep_id = line_split[0]
-                
-                if len(line_split) >= 2:
-                    for genome_id in map(str.strip, line_split[1].split(',')):
-                        genome_reps[genome_id] = rep_id
-                
-        return genome_reps
-        
-    def _include_reps(self, ingroup_taxa, outgroup_taxa, genome_reps, is_ingroup):
-        """Expand set of taxa to include representatives of taxa."""
-        
-        rep_is_ingroup = []
-        rep_is_outgroup = []
-        if is_ingroup:
-            taxa_with_reps = set(ingroup_taxa)
-            for genome_id in ingroup_taxa:
-                if genome_id in genome_reps:
-                    rep_id = genome_reps[genome_id]
-                    if rep_id == genome_id:
-                        continue
-                        
-                    taxa_with_reps.add(rep_id)
-                    if rep_id in ingroup_taxa:
-                        rep_is_ingroup.append(rep_id)
-                    else:
-                        rep_is_outgroup.append(rep_id)
-        else:
-            taxa_with_reps = set(outgroup_taxa)
-            for genome_id in genome_reps:
-                if genome_id in ingroup_taxa:
-                    continue
-                    
-                rep_id = genome_reps[genome_id]
-                if rep_id == genome_id:
-                    continue
-                    
-                if rep_id in ingroup_taxa:
-                    taxa_with_reps.add(rep_id)
-                    rep_is_ingroup.append(rep_id)
-                elif rep_id in outgroup_taxa:
-                    taxa_with_reps.add(rep_id)
-                    rep_is_outgroup.append(rep_id)
-                else:
-                    # this should never happend
-                    self.logger.warning('There is an outgroup taxa (%s) with a representative (%s) not present in the tree.' % (genome_id, rep_id))
-                        
-        return taxa_with_reps, rep_is_ingroup, rep_is_outgroup
-        
-    def _taxon_pd(self, tree, ingroup, out_taxa_with_reps, genome_reps):
+
+    def _taxon_pd(self, tree, ingroup, outgroup):
         """Calculate phylogenetic gain of each ingroup taxon relative to outgroup."""
 
         pg_taxon = {}
-        for taxon in ingroup:
-            rep_id = genome_reps.get(taxon, None)
-            if rep_id and rep_id not in ingroup:
-                pg_taxon[taxon] = [0, rep_id + ' (assigned to outgroup representative)']
-            
         for leaf in tree.leaf_node_iter():
             if leaf.taxon.label in ingroup:
                 # find first internal node containing an outgroup taxon
@@ -131,7 +69,7 @@ class PhylogeneticDiversity():
                     # check for outgroup taxon
                     stop = False
                     for tip in parent.leaf_iter():
-                        if tip.taxon.label in out_taxa_with_reps:
+                        if tip.taxon.label in outgroup:
                             outgroup_taxon = tip.taxon.label
                             if outgroup_taxon in ingroup:
                                 outgroup_taxon += ' (one or more outgroup taxa are assigned to this ingroup taxon)'
@@ -144,19 +82,28 @@ class PhylogeneticDiversity():
                     parent = parent.parent_node
                     
                 pg_taxon[leaf.taxon.label] = [pg, outgroup_taxon]
-                
-                # propagate information to genomes represented by this genome_id
-                for genome_id, rep_id in genome_reps.iteritems():
-                    if genome_id in ingroup and rep_id == leaf.taxon.label:
-                        pg_taxon[genome_id] = [pg, outgroup_taxon]
 
         return pg_taxon
+        
+    def _taxa_pd(self, tree, taxa):
+        """Calculate phylogenetic diversity of a set of taxa."""
+        
+        pd = 0
+        visited_edges = set()
+        for cur_node in taxa:
+            while cur_node.parent_node is not None:
+                if cur_node.edge in visited_edges:
+                    break
 
-    def pd(self, tree, taxa_list, rep_list, per_taxa_pg_file):
+                pd += cur_node.edge.length
+                visited_edges.add(cur_node.edge)
+                cur_node = cur_node.parent_node
+
+        return pd
+
+    def pd(self, tree, taxa_list, per_taxa_pg_file):
         """Calculate phylogenetic diversity of extant taxa."""
 
-        genome_reps = self._read_reps(rep_list)
-        
         self.logger.info('Reading tree.')
         tree = dendropy.Tree.get_from_path(tree,
                                             schema='newick',
@@ -175,55 +122,29 @@ class PhylogeneticDiversity():
         in_taxa = set()
         for leaf in tree.leaf_node_iter():
             if leaf.taxon.label in ingroup:
-                in_taxa.add(leaf.taxon.label)
-            
-        #tree_in = dendropy.Tree(tree)
-        #tree_in.retain_taxa_with_labels(ingroup)
-        #in_pd, in_taxa = self._total_pd(tree_in)
+                in_taxa.add(leaf)
         
         self.logger.info('Specified ingroup taxa: %d' % len(ingroup))
-        self.logger.info('Ingroup taxa as representatives or singletons in tree: %d' % len(in_taxa))
+        self.logger.info('Ingroup taxa found in tree: %d' % len(in_taxa))
 
-        # calculate PD for ingroup with additional genomes assigned to a representative
-        ingroup_with_reps, rep_is_ingroup, rep_is_outgroup = self._include_reps(ingroup, None, genome_reps, True)
-        tree_in_with_reps = dendropy.Tree(tree)
-        tree_in_with_reps.retain_taxa_with_labels(ingroup_with_reps)
-        in_pd_with_reps, in_taxa_with_reps = self._total_pd(tree_in_with_reps)
-        
-        self.logger.info('Ingroup taxa represented by another ingroup taxa: %d' % len(rep_is_ingroup))
-        self.logger.info('Ingroup taxa represented by an outgroup taxa: %d' % len(rep_is_outgroup))
-        self.logger.info('Unique outgroup taxa representing an ingroup taxa: %d' % len(set(rep_is_outgroup)))
-        ingroup_taxa = len(in_taxa) + len(rep_is_ingroup) + len(rep_is_outgroup)
-        ingroup_taxa_derep = len(in_taxa) + len(set(rep_is_outgroup))
-        
+        # calculate PD for ingroup
+        in_pd = self._taxa_pd(tree, in_taxa)
+
         # get PD of outgroup taxa
         outgroup = set()
+        out_taxa = set()
         for leaf in tree.leaf_node_iter():
             if leaf.taxon.label not in ingroup:
+                out_taxa.add(leaf)
                 outgroup.add(leaf.taxon.label)
                 
-        self.logger.info('Outgroup taxa as representatives or singletons in tree: %d' % len(outgroup))
-        
-        # calculate PD for outgroup with additional genomes assigned to a representative
-        #tree_out = dendropy.Tree(tree)
-        #tree_out.retain_taxa_with_labels(outgroup)
-        #out_pd, out_taxa = self._total_pd(tree_out)
+        self.logger.info('Outgroup taxa found in tree: %d' % len(out_taxa))
+        out_pd = self._taxa_pd(tree, out_taxa)
 
-        outgroup_with_reps, rep_is_ingroup, rep_is_outgroup = self._include_reps(ingroup, outgroup, genome_reps, False)
-        tree_out_with_reps = dendropy.Tree(tree)
-        tree_out_with_reps.retain_taxa_with_labels(outgroup_with_reps)
-        out_pd_with_reps, out_taxa_with_reps = self._total_pd(tree_out_with_reps)
-                
-        self.logger.info('Outgroup taxa represented by another outgroup taxa: %d' % len(rep_is_outgroup))
-        self.logger.info('Outgroup taxa represented by an ingroup taxa: %d' % len(rep_is_ingroup))
-        self.logger.info('Unique ingroup taxa representing an outgroup taxa: %d' % len(set(rep_is_ingroup)))
-        outgroup_taxa = len(outgroup) + len(rep_is_outgroup) + len(rep_is_ingroup)
-        outgroup_taxa_derep = len(outgroup) + len(set(rep_is_ingroup))
-        
         # calculate PG of each ingroup taxon relative to outgroup in requested
         if per_taxa_pg_file:
             self.logger.info('Calculating PG of each ingroup taxon relative to outgroup.')
-            pg_taxon = self._taxon_pd(tree, ingroup, outgroup.union(rep_is_ingroup), genome_reps)
+            pg_taxon = self._taxon_pd(tree, ingroup, outgroup)
             
             fout = open(per_taxa_pg_file, 'w')
             fout.write('Taxon\tPG\tPercent PG\tFirst outgroup taxon\n')
@@ -232,9 +153,9 @@ class PhylogeneticDiversity():
                 fout.write('%s\t%f\t%f\t%s\n' % (taxon, pg, pg * 100.0 / total_pd, outgroup_taxon))
             fout.close()
                    
-        return total_pd, ingroup_taxa, ingroup_taxa_derep, in_pd_with_reps, outgroup_taxa, outgroup_taxa_derep, out_pd_with_reps
+        return total_pd, len(in_taxa), in_pd, len(out_taxa), out_pd
         
-    def _clade_pd(self, tree, ingroup_count, outgroup_count):
+    def _clade_pd(self, tree, ingroup, outgroup):
         """Calculate PD for named clades."""
         
         pd = {}
@@ -248,16 +169,14 @@ class PhylogeneticDiversity():
             else:
                 if not is_float(node.label):
                     taxon = node.label
-
+                    
             if taxon:
                 taxon_pd = 0
                 taxon_count = 0
                 in_taxon_pd = 0
                 in_taxon_count = 0
-                in_taxon_derep = 0
                 out_taxon_pd = 0
                 out_taxon_count = 0
-                out_taxon_derep = 0
                 for nn in node.postorder_iter():
                     if nn == node:
                         continue
@@ -268,10 +187,10 @@ class PhylogeneticDiversity():
                     outgroup_leaves = False
                     for leaf in nn.leaf_iter():
                         genome_id = leaf.taxon.label
-                        if genome_id in ingroup_count:
+                        if genome_id in ingroup:
                             ingroup_leaves = True
                         
-                        if genome_id in outgroup_count:
+                        if genome_id in outgroup:
                             outgroup_leaves = True
                             
                     if ingroup_leaves:
@@ -283,23 +202,18 @@ class PhylogeneticDiversity():
                     if nn.is_leaf():
                         genome_id = nn.taxon.label
                         
-                        in_taxon_count += ingroup_count.get(genome_id, 0)
-                        if genome_id in ingroup_count:
-                            in_taxon_derep += 1
-                            
-                        out_taxon_count += outgroup_count.get(genome_id, 0)
-                        if genome_id in outgroup_count:
-                            out_taxon_derep += 1
+                        if genome_id in ingroup:
+                            in_taxon_count += 1
+                        else:
+                            out_taxon_count += 1
                             
                     taxon_pd += nn.edge.length
 
-                if taxon == 'd__Archaea':
-                    print taxon_count, in_taxon_count, out_taxon_count, in_taxon_pd, out_taxon_pd
-                pd[taxon] = [taxon_pd, in_taxon_pd, in_taxon_count, in_taxon_derep, out_taxon_pd, out_taxon_count, out_taxon_derep]
-                
+                pd[taxon] = [taxon_pd, in_taxon_pd, in_taxon_count, out_taxon_pd, out_taxon_count]
+
         return pd
         
-    def pd_clade(self, decorated_tree, output_file, taxa_list, rep_list):
+    def pd_clade(self, decorated_tree, taxa_list, output_file):
         """Calculate phylogenetic diversity of named groups."""
         
         # calculate PD for entire tree
@@ -314,58 +228,43 @@ class PhylogeneticDiversity():
         
         # get ingroup and outgroup taxa
         ingroup = self._read_taxa_list(taxa_list)
-        self.logger.info('Specified ingroup taxa: %d' % len(ingroup))
-        
-        # get number of ingroup and outgroup genomes 
-        # representated by each leaf node
-        genome_reps = self._read_reps(rep_list)
-        
-        ingroup_count = defaultdict(int)
-        outgroup_count = defaultdict(int)
-        for genome_id in genome_reps:
-            rep_id = genome_reps[genome_id]
-                
-            if genome_id in ingroup:
-                ingroup_count[rep_id] += 1
-            else:
-                outgroup_count[rep_id] += 1
-                
-        # add count for singletons
+        outgroup = set()
+        in_tree = set()
         for leaf in tree.leaf_node_iter():
-            genome_id = leaf.taxon.label
-            
-            if genome_id in ingroup and genome_id not in ingroup_count:
-                ingroup_count[genome_id] = 1 # ingroup singleton
-            elif genome_id not in ingroup and genome_id not in  outgroup_count:
-                outgroup_count[genome_id] = 1 # outgroup singleton
+            if leaf.taxon.label not in ingroup:
+                outgroup.add(leaf.taxon.label)
+            if leaf.taxon.label in ingroup:
+                in_tree.add(leaf.taxon.label)
+                
+        self.logger.info('Specified %d ingroup taxa.' % len(ingroup))
+        self.logger.info('Identified %d ingroup taxa in tree.' % len(in_tree))
+        self.logger.info('Identified %d outgroup taxa in tree.' % len(outgroup))
 
         # PD for named groups
         self.logger.info('Calculating PD for named clades.')
-        pd_clade = self._clade_pd(tree, ingroup_count, outgroup_count)
-        
-        print 'ingroup_count, outgroup_count', len(ingroup_count), len(outgroup_count)
+        pd_clade = self._clade_pd(tree, ingroup, outgroup)
+        self.logger.info(' ... identified %d named clades.' % len(pd_clade))
 
         # report results
         fout = open(output_file, 'w')
         fout.write('Clade')
-        fout.write('\tTaxa\tTaxa (derep)\tPD\tPercent PD')
-        fout.write('\tOut Taxa\tOut Taxa (derep)\tOut PD\tOut Percent PD')
-        fout.write('\tIn Taxa\tIn Taxa (derep)\tIn PD\tIn Percent PD')
+        fout.write('\tTaxa\tPD\tPercent PD')
+        fout.write('\tOut Taxa\tOut PD\tOut Percent PD')
+        fout.write('\tIn Taxa\tIn PD\tIn Percent PD')
         fout.write('\tIn PG\tIn Percent PG\n')
         
         ordered_taxa = Taxonomy().sort_taxa(pd_clade.keys())
         for taxon in ordered_taxa:
-            taxon_pd, in_taxon_pd, in_taxon_count, in_taxon_derep, out_taxon_pd, out_taxon_count, out_taxon_derep = pd_clade[taxon]
+            taxon_pd, in_taxon_pd, in_taxon_count, out_taxon_pd, out_taxon_count = pd_clade[taxon]
             taxon_count = in_taxon_count + out_taxon_count
-            taxon_derep = in_taxon_derep + out_taxon_derep
             in_taxon_pg = taxon_pd - out_taxon_pd
             
             taxon_pd = max(taxon_pd, 1e-9) # make sure PD is never exactly zero to avoid division errors
             
             row = taxon
-            row += '\t%d\t%d\t%.2f\t%.2f' % (taxon_count, taxon_derep, taxon_pd, taxon_pd * 100 / total_pd)
-            row += '\t%d\t%d\t%.2f\t%.2f' % (out_taxon_count, out_taxon_derep, out_taxon_pd, out_taxon_pd * 100 / taxon_pd)
-            row += '\t%d\t%d\t%.2f\t%.2f' % (in_taxon_count, in_taxon_derep, in_taxon_pd, in_taxon_pd * 100 / taxon_pd)
+            row += '\t%d\t%.2f\t%.2f' % (taxon_count, taxon_pd, taxon_pd * 100 / total_pd)
+            row += '\t%d\t%.2f\t%.2f' % (out_taxon_count, out_taxon_pd, out_taxon_pd * 100 / taxon_pd)
+            row += '\t%d\t%.2f\t%.2f' % (in_taxon_count, in_taxon_pd, in_taxon_pd * 100 / taxon_pd)
             row += '\t%.2f\t%.2f' % (in_taxon_pg, in_taxon_pg * 100 / taxon_pd)
             fout.write(row + '\n')
         fout.close()

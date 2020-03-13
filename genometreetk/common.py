@@ -563,6 +563,9 @@ def read_gtdb_ncbi_taxonomy(metadata_file, species_exception_file):
         for line in open(species_exception_file):
             line_split = line.strip().split('\t')
             gid = line_split[0]
+            if gid == 'Genome ID':
+                continue
+                
             sp = line_split[1].replace('Candidatus ', '')
             if gid not in taxonomy:
                 print('Genome in species exception list not defined at NCBI: %s' % gid)
