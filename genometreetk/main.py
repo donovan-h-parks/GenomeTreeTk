@@ -15,32 +15,26 @@
 #                                                                             #
 ###############################################################################
 
-import os
-import sys
 import csv
 import logging
-import random
-from collections import defaultdict
+import sys
 
 import dendropy
-
-from biolib.common import check_file_exists, make_sure_path_exists, is_float
+from biolib.common import check_file_exists, make_sure_path_exists
 from biolib.external.execute import check_dependencies
-from biolib.taxonomy import Taxonomy
 from biolib.newick import parse_label
+from biolib.taxonomy import Taxonomy
 
-from genometreetk.exceptions import GenomeTreeTkError
-from genometreetk.rna_workflow import RNA_Workflow
+from genometreetk.arb import Arb
 from genometreetk.bootstrap import Bootstrap
+from genometreetk.combine_support import CombineSupport
+from genometreetk.common import read_gtdb_metadata
+from genometreetk.derep_tree import DereplicateTree
 from genometreetk.jackknife_markers import JackknifeMarkers
 from genometreetk.jackknife_taxa import JackknifeTaxa
-from genometreetk.combine_support import CombineSupport
-from genometreetk.reroot_tree import RerootTree
-from genometreetk.common import parse_genome_path, read_gtdb_metadata, read_gtdb_taxonomy
 from genometreetk.phylogenetic_diversity import PhylogeneticDiversity
-from genometreetk.arb import Arb
-from genometreetk.derep_tree import DereplicateTree
-
+from genometreetk.reroot_tree import RerootTree
+from genometreetk.rna_workflow import RNA_Workflow
 
 csv.field_size_limit(sys.maxsize)
 
@@ -512,23 +506,23 @@ class OptionsParser():
         # report phylogenetic diversity (PD) and gain (PG)
         print('')
         print('\tNo. Taxa\tPD\tPercent PD')
-        
-        print('%s\t%d\t%.2f\t%.2f%%') % ('Full tree', total_taxa, total_pd, 100)
-        
-        print('%s\t%d\t%.2f\t%.3f%%') % ('Outgroup taxa (PD)',
-                                            num_out_taxa,
-                                            out_pd, 
-                                            out_pd * 100 / total_pd)
 
-        print('%s\t%d\t%.2f\t%.3f%%') % ('Ingroup taxa (PD)',
-                                            num_in_taxa,
-                                            in_pd, 
-                                            (in_pd) * 100 / total_pd)   
-                                        
-        print('%s\t%d\t%.2f\t%.3f%%') % ('Ingroup taxa (PG)',
-                                            num_in_taxa,
-                                            in_pg, 
-                                            in_pg * 100 / total_pd)
+        print('%s\t%d\t%.2f\t%.2f%%' % ('Full tree', total_taxa, total_pd, 100))
+
+        print('%s\t%d\t%.2f\t%.3f%%' % ('Outgroup taxa (PD)',
+                                        num_out_taxa,
+                                        out_pd,
+                                        out_pd * 100 / total_pd))
+
+        print('%s\t%d\t%.2f\t%.3f%%' % ('Ingroup taxa (PD)',
+                                        num_in_taxa,
+                                        in_pd,
+                                        (in_pd) * 100 / total_pd))
+
+        print('%s\t%d\t%.2f\t%.3f%%' % ('Ingroup taxa (PG)',
+                                        num_in_taxa,
+                                        in_pg,
+                                        in_pg * 100 / total_pd))
                   
     def phylogenetic_diversity_clade(self, options):
         """Calculate phylogenetic diversity of named groups."""

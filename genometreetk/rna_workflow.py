@@ -280,7 +280,7 @@ class RNA_Workflow(object):
         if remove_identical:
             self.logger.info('Filtering identical sequences.')
 
-            seq_ids = seqs.keys()
+            seq_ids = list(seqs.keys())
             for i in range(0, len(seq_ids)):
                 seq_id_I = seq_ids[i]
 
@@ -794,7 +794,7 @@ class RNA_Workflow(object):
             lsu_seqs[genome_id] = [seq, annotation]
         self.logger.info('Read %d LSU rRNA sequences.' % len(lsu_seqs))
               
-        common_seqs = set(ssu_seqs.keys()).intersection(lsu_seqs.keys())
+        common_seqs = set(ssu_seqs.keys()).intersection(set(lsu_seqs.keys()))
         self.logger.info('Identified %d sequences in common.' % len(common_seqs))
         
         # identify incongruent taxonomic order classifcations between trees

@@ -85,7 +85,7 @@ class JackknifeMarkers(object):
         output_file : str
           File to write bootstrapped alignment.
         """
-        markers_to_keep = random.sample(range(0, len(marker_lengths)), int(floor(perc_markers_to_keep * len(marker_lengths))))
+        markers_to_keep = random.sample(list(range(0, len(marker_lengths))), int(floor(perc_markers_to_keep * len(marker_lengths))))
 
         start_pos = [0]
         for index, ml in enumerate(marker_lengths):
@@ -180,7 +180,7 @@ class JackknifeMarkers(object):
             # read full multiple sequence alignment
             self.msa = seq_io.read(msa_file)
             
-            if len(self.msa.values()[0]) != total_mask_len:
+            if len(list(self.msa.values())[0]) != total_mask_len:
                 self.logger.error('Length of MSA does not meet length of mask.')
                 sys.exit(-1)
 
