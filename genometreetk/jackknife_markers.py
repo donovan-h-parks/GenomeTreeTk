@@ -15,16 +15,17 @@
 #                                                                             #
 ###############################################################################
 
-import os
 import logging
+import os
 import random
+import sys
 from math import floor
 
 import biolib.seq_io as seq_io
+from biolib.bootstrap import bootstrap_support
+from biolib.common import remove_extension, make_sure_path_exists
 from biolib.external.fasttree import FastTree
 from biolib.parallel import Parallel
-from biolib.common import remove_extension, make_sure_path_exists
-from biolib.bootstrap import bootstrap_support
 
 
 class JackknifeMarkers(object):

@@ -46,7 +46,7 @@ def aai_thresholds(seq1, seq2, max_mismatches, min_matches):
 
     mismatches = 0
     matches = 0
-    for c1, c2 in itertools.izip(seq1, seq2):
+    for c1, c2 in zip(seq1, seq2):
         if c1 == '-' or c2 == '-':
             continue
         elif c1 != c2:
@@ -94,7 +94,7 @@ def aai(seq1, seq2, threshold):
 
     mismatches = 0
     matches = 0
-    for c1, c2 in itertools.izip(seq1, seq2):
+    for c1, c2 in zip(seq1, seq2):
         if c1 == '-' or c2 == '-':
             continue
         elif c1 != c2:

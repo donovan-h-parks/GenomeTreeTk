@@ -15,21 +15,18 @@
 #                                                                             #
 ###############################################################################
 
+import logging
 import os
 import sys
-import logging
 
 import biolib.seq_io as seq_io
 from biolib.common import remove_extension
-from biolib.external.fasttree import FastTree
 from biolib.external.blast import Blast
 from biolib.taxonomy import Taxonomy
 
-import genometreetk.ncbi as ncbi
 from genometreetk.common import (read_gtdb_metadata,
-                                    read_genome_dir_file,
-                                    read_gtdb_taxonomy)
-                                    
+                                 read_gtdb_taxonomy)
+
 
 class RNA_Workflow(object):
     """Infer RNA gene trees."""
