@@ -521,8 +521,6 @@ class OptionsParser():
         # report phylogenetic diversity (PD) and gain (PG)
         print('')
         print('\tNo. Taxa\tPD\tPercent PD')
-<<<<<<< HEAD
-        
         print('%s\t%d\t%.2f\t%.2f%%' % ('Full tree', total_taxa, total_pd, 100))
         
         print('%s\t%d\t%.2f\t%.3f%%' % ('Outgroup taxa (PD)',
@@ -539,25 +537,6 @@ class OptionsParser():
                                             num_in_taxa,
                                             in_pg, 
                                             in_pg * 100 / total_pd))
-=======
-
-        print('%s\t%d\t%.2f\t%.2f%%' % ('Full tree', total_taxa, total_pd, 100))
-
-        print('%s\t%d\t%.2f\t%.3f%%' % ('Outgroup taxa (PD)',
-                                        num_out_taxa,
-                                        out_pd,
-                                        out_pd * 100 / total_pd))
-
-        print('%s\t%d\t%.2f\t%.3f%%' % ('Ingroup taxa (PD)',
-                                        num_in_taxa,
-                                        in_pd,
-                                        (in_pd) * 100 / total_pd))
-
-        print('%s\t%d\t%.2f\t%.3f%%' % ('Ingroup taxa (PG)',
-                                        num_in_taxa,
-                                        in_pg,
-                                        in_pg * 100 / total_pd))
->>>>>>> 6b2bc68b09f40c20d80d2bd786a891d62e786843
                   
     def phylogenetic_diversity_clade(self, options):
         """Calculate phylogenetic diversity of named groups."""
