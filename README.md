@@ -1,6 +1,7 @@
 # Genome Tree Toolkit
 
 [![version status](https://img.shields.io/pypi/v/genometreetk.svg)](https://pypi.python.org/pypi/genometreetk)
+[![conda version](https://img.shields.io/conda/vn/ace-internal/genometreetk.svg?color=green)](https://anaconda.org/ace-internal/genometreetk)
 [![Downloads](https://pepy.tech/badge/genometreetk)](https://pepy.tech/project/genometreetk)
 [![Downloads](https://pepy.tech/badge/genometreetk/month)](https://pepy.tech/project/genometreetk/month)
 

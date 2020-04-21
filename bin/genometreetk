@@ -25,30 +25,24 @@ __maintainer__ = "Donovan Parks"
 __email__ = "donovan.parks@gmail.com"
 __status__ = "Development"
 
+import argparse
+import logging
+import ntpath
 import os
 import sys
-import ntpath
-import logging
-import argparse
 
-from genometreetk.main import OptionsParser
-from biolib.misc.custom_help_formatter import CustomHelpFormatter
 from biolib.common import make_sure_path_exists
-from biolib.taxonomy import Taxonomy
+from biolib.misc.custom_help_formatter import CustomHelpFormatter
 
-
-def version():
-    """Read program version from file."""
-    import genometreetk
-    version_file = open(os.path.join(genometreetk.__path__[0], 'VERSION'))
-    return version_file.readline().strip()
+from genometreetk import __version__
+from genometreetk.main import OptionsParser
 
 
 def print_help():
     """Help menu."""
 
     print('')
-    print('                ...::: GenomeTreeTk v' + version() + ' :::...''')
+    print('                ...::: GenomeTreeTk v' + __version__ + ' :::...''')
     print('''\
 
     Infer rRNA trees:
@@ -122,7 +116,7 @@ def logger_setup(output_dir, silent):
         file_logger.setFormatter(log_format)
         logger.addHandler(file_logger)
 
-    logger.info('GenomeTreeTk v%s' % version())
+    logger.info('GenomeTreeTk v%s' % __version__)
     logger.info(ntpath.basename(sys.argv[0]) + ' ' + ' '.join(sys.argv[1:]))
 
 
@@ -381,7 +375,7 @@ if __name__ == '__main__':
 
     # get and check options
     args = None
-    if(len(sys.argv) == 1 or sys.argv[1] == '-h' or sys.argv == '--help'):
+    if len(sys.argv) == 1 or sys.argv[1] in {'-h', '--help'}:
         print_help()
         sys.exit(0)
     else:

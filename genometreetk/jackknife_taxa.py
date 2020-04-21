@@ -123,7 +123,8 @@ class JackknifeTaxa(object):
         self.perc_taxa_to_keep = perc_taxa_to_keep
         self.model = model
         self.replicate_dir = os.path.join(output_dir, 'replicates')
-        make_sure_path_exists(self.replicate_dir)
+        make_sure_path_exists(self.replicate_dir)
+
         # read outgroup taxa
         self.outgroup_ids = set()
         if outgroup_file:
