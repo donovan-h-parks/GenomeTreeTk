@@ -75,7 +75,7 @@ class Prune(object):
                         taxa_in_tree.add(leaf.taxon)
                     taxa_to_retain.remove(taxon)
                         
-            # check if all outgroup taxa have been identified          
+            # check if all outgroup taxa have been identified
             if not taxa_to_retain:
                 break
                 
