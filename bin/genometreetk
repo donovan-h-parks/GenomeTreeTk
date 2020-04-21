@@ -76,6 +76,9 @@ def print_help():
       pull       -> Create taxonomy file from a decorated tree
       append     -> Append taxonomy to extant tree labels
       
+    Tree manipulation:
+      prune -> Prune tree to a specific set of extant taxa
+      
     Phylogenetic diversity:
       pd       -> Calculate phylogenetic diversity of specified taxa
       pd_clade -> Calculate phylogenetic diversity of all named groups
@@ -337,6 +340,15 @@ if __name__ == '__main__':
     append_parser.add_argument('input_taxonomy', help="input taxonomy file")
     append_parser.add_argument('output_tree', help="output tree with taxonomy appended to extant taxon labels")
     append_parser.add_argument('--silent', help="suppress output", action='store_true')
+    
+    # Prune command
+    prune_parser = subparsers.add_parser('prune',
+                                            formatter_class=CustomHelpFormatter,
+                                            description='Prune tree to a specific set of extant taxa.')
+    prune_parser.add_argument('input_tree', help='input tree in Newick format')
+    prune_parser.add_argument('taxa_to_retain', help='input file specify taxa to retain')
+    prune_parser.add_argument('output_tree', help='pruned output tree')
+    prune_parser.add_argument('--silent', help="suppress output", action='store_true')
     
     # calculate phylogenetic diversity
     pd_parser = subparsers.add_parser('pd',

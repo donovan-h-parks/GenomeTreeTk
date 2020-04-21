@@ -40,6 +40,7 @@ from genometreetk.common import parse_genome_path, read_gtdb_metadata, read_gtdb
 from genometreetk.phylogenetic_diversity import PhylogeneticDiversity
 from genometreetk.arb import Arb
 from genometreetk.derep_tree import DereplicateTree
+from genometreetk.prune import Prune
 
 
 csv.field_size_limit(sys.maxsize)
@@ -497,6 +498,17 @@ class OptionsParser():
 
         self.logger.info('Decorated tree written to: %s' % options.output_tree)
         
+    def prune(self, options):
+        """Prune tree."""
+        
+        check_file_exists(options.input_tree)
+        check_file_exists(options.taxa_to_retain)
+        
+        prune = Prune()
+        prune.run(options.input_tree,
+                    options.taxa_to_retain,
+                    options.output_tree)
+                    
     def phylogenetic_diversity(self, options):
         """Calculate phylogenetic diversity of extant taxa."""
         
@@ -510,25 +522,25 @@ class OptionsParser():
         in_pg = total_pd - out_pd
                                             
         # report phylogenetic diversity (PD) and gain (PG)
-        print ''
-        print '\tNo. Taxa\tPD\tPercent PD'
+        print('')
+        print('\tNo. Taxa\tPD\tPercent PD')
         
-        print '%s\t%d\t%.2f\t%.2f%%' % ('Full tree', total_taxa, total_pd, 100)
+        print('%s\t%d\t%.2f\t%.2f%%' % ('Full tree', total_taxa, total_pd, 100))
         
-        print '%s\t%d\t%.2f\t%.3f%%' % ('Outgroup taxa (PD)',
+        print('%s\t%d\t%.2f\t%.3f%%' % ('Outgroup taxa (PD)',
                                             num_out_taxa,
                                             out_pd, 
-                                            out_pd * 100 / total_pd)
+                                            out_pd * 100 / total_pd))
 
-        print '%s\t%d\t%.2f\t%.3f%%' % ('Ingroup taxa (PD)',
+        print('%s\t%d\t%.2f\t%.3f%%' % ('Ingroup taxa (PD)',
                                             num_in_taxa,
                                             in_pd, 
-                                            (in_pd) * 100 / total_pd)   
+                                            (in_pd) * 100 / total_pd))
                                         
-        print '%s\t%d\t%.2f\t%.3f%%' % ('Ingroup taxa (PG)',
+        print('%s\t%d\t%.2f\t%.3f%%' % ('Ingroup taxa (PG)',
                                             num_in_taxa,
                                             in_pg, 
-                                            in_pg * 100 / total_pd)
+                                            in_pg * 100 / total_pd))
                   
     def phylogenetic_diversity_clade(self, options):
         """Calculate phylogenetic diversity of named groups."""
@@ -593,6 +605,8 @@ class OptionsParser():
             self.pull(options)
         elif options.subparser_name == 'append':
             self.append(options)
+        elif options.subparser_name == 'prune':
+            self.prune(options)
         elif options.subparser_name == 'pd':
             self.phylogenetic_diversity(options)
         elif options.subparser_name == 'pd_clade':
