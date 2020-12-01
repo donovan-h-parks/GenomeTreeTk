@@ -58,7 +58,7 @@ class Bootstrap(object):
         else:
             bootstrap_alignment(self.msa, output_msa, frac=self.frac)
             fast_tree = FastTree(multithreaded=False)
-            fast_tree.run(output_msa, self.base_type, self.model, self.gamma, output_tree, fast_tree_output)
+            cmd = fast_tree.run(output_msa, self.base_type, self.model, self.gamma, output_tree, fast_tree_output)
 
         return True
 
@@ -129,6 +129,8 @@ class Bootstrap(object):
         # calculate support values
         self.logger.info('Calculating bootstrap support values.')
         output_tree = os.path.join(output_dir, remove_extension(input_tree) + '.bootstrap.tree')
-        bootstrap_support(input_tree, rep_tree_files, output_tree)
+        
+        if input_tree.lower() != 'none':
+            bootstrap_support(input_tree, rep_tree_files, output_tree)
 
         return output_tree

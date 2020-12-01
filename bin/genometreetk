@@ -213,7 +213,7 @@ if __name__ == '__main__':
     bootstrap_parser = subparsers.add_parser('bootstrap',
                                         formatter_class=CustomHelpFormatter,
                                         description='Bootstrap multiple sequence alignment.')
-    bootstrap_parser.add_argument('input_tree', help="tree inferred from original data")
+    bootstrap_parser.add_argument('input_tree', help="tree inferred from original data (NONE to skip decorating tree with bootstrap values)")
     bootstrap_parser.add_argument('msa_file', help="file containing multiple sequence alignment  (or 'NONE' if '--boot_dir' is given)")
     bootstrap_parser.add_argument('output_dir', help="output directory")
     bootstrap_parser.add_argument('--boot_dir', help="directory containing pre-computed bootstrap trees (must have '.tree', '.tre', or '.treefile' extension)")
@@ -299,6 +299,7 @@ if __name__ == '__main__':
     propagate_parser.add_argument('input_taxonomy', help='input taxonomy file')
     propagate_parser.add_argument('metadata_file', help="metadata file for all genomes in the GTDB")
     propagate_parser.add_argument('output_taxonomy', help='output taxonomy file')
+    propagate_parser.add_argument('--uba_mapping_file', help="file mapping between User, UBA, and NCBI genome IDs")
     propagate_parser.add_argument('--silent', help="suppress output", action='store_true')
 
     # strip taxonomic labels from tree

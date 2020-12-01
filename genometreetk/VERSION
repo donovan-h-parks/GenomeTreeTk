@@ -1,3 +1,7 @@
+0.1.7
+- updated propagate command to work with new Gxyz style genome IDs
+- updated 'bootstrap' command to not require input tree
+
 0.1.6
 - fixed more merging issues
 
