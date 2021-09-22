@@ -51,14 +51,19 @@ class Bootstrap(object):
         """
 
         output_msa = os.path.join(self.replicate_dir, 'bootstrap_msa.r_' + str(replicated_num) + '.fna')
+        if os.path.exists(output_msa) and os.path.getsize(output_msa) > 0:
+            self.logger.warning('Skipping {} as it already exists.'.format(output_msa))
+            return True
+
         output_tree = os.path.join(self.replicate_dir, 'bootstrap_tree.r_' + str(replicated_num) + '.tree')
         fast_tree_output = os.path.join(self.replicate_dir, 'bootstrap_fasttree.r_' + str(replicated_num) + '.out')
-        if os.path.exists(output_tree) and os.path.getsize(output_tree) > 0:
-            self.logger.warning('Skipping {} as it already exists.'.format(output_tree))
-        else:
-            bootstrap_alignment(self.msa, output_msa, frac=self.frac)
-            fast_tree = FastTree(multithreaded=False)
-            cmd = fast_tree.run(output_msa, self.base_type, self.model, self.gamma, output_tree, fast_tree_output)
+        if os.path.exists(fast_tree_output) and os.path.getsize(fast_tree_output) > 0:
+            self.logger.warning('Skipping {} as it already exists.'.format(fast_tree_output))
+            return True
+
+        bootstrap_alignment(self.msa, output_msa, frac=self.frac)
+        fast_tree = FastTree(multithreaded=False)
+        cmd = fast_tree.run(output_msa, self.base_type, self.model, self.gamma, output_tree, fast_tree_output)
 
         return True
 

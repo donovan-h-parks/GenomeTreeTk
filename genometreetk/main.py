@@ -58,20 +58,20 @@ class OptionsParser():
 
         rna_workflow = RNA_Workflow(options.cpus)
         rna_workflow.run('ssu',
-                            options.gtdb_metadata_file,
-                            options.gtdb_ssu_file,
-                            options.min_ssu_length,
-                            options.min_scaffold_length,
-                            options.min_quality,
-                            options.max_contigs,
-                            options.min_N50,
-                            not options.disable_tax_filter,
-                            options.genome_list,
-                            options.output_dir,
-                            options.align_method)
+                         options.gtdb_metadata_file,
+                         options.gtdb_ssu_file,
+                         options.min_ssu_length,
+                         options.min_scaffold_length,
+                         options.min_quality,
+                         options.max_contigs,
+                         options.min_N50,
+                         not options.disable_tax_filter,
+                         options.genome_list,
+                         options.output_dir,
+                         options.align_method)
 
         self.logger.info('Results written to: %s' % options.output_dir)
-        
+
     def lsu_tree(self, options):
         """Infer 23S tree spanning GTDB genomes."""
 
@@ -83,21 +83,21 @@ class OptionsParser():
 
         rna_workflow = RNA_Workflow(options.cpus)
         rna_workflow.run('lsu',
-                            options.gtdb_metadata_file,
-                            options.gtdb_lsu_file,
-                            options.min_lsu_length,
-                            options.min_scaffold_length,
-                            options.min_quality,
-                            options.max_contigs,
-                            options.min_N50,
-                            not options.disable_tax_filter,
-                            #options.reps_only,
-                            #options.user_genomes,
-                            options.genome_list,
-                            options.output_dir)
+                         options.gtdb_metadata_file,
+                         options.gtdb_lsu_file,
+                         options.min_lsu_length,
+                         options.min_scaffold_length,
+                         options.min_quality,
+                         options.max_contigs,
+                         options.min_N50,
+                         not options.disable_tax_filter,
+                         # options.reps_only,
+                         # options.user_genomes,
+                         options.genome_list,
+                         options.output_dir)
 
         self.logger.info('Results written to: %s' % options.output_dir)
-        
+
     def rna_tree(self, options):
         """Infer 16S + 23S tree spanning GTDB genomes."""
 
@@ -111,53 +111,55 @@ class OptionsParser():
 
         rna_workflow = RNA_Workflow(options.cpus)
         rna_workflow.combine(options.ssu_msa,
-                                options.ssu_tree,
-                                options.lsu_msa,
-                                options.lsu_tree,
-                                options.output_dir)
+                             options.ssu_tree,
+                             options.lsu_msa,
+                             options.lsu_tree,
+                             options.output_dir)
 
         self.logger.info('Results written to: %s' % options.output_dir)
-        
+
     def rna_dump(self, options):
         """Dump all 5S, 16S, and 23S sequences to files."""
-        
+
         check_file_exists(options.genomic_file)
         make_sure_path_exists(options.output_dir)
-        
+
         rna_workflow = RNA_Workflow(1)
         rna_workflow.dump(options.genomic_file,
-                            options.gtdb_taxonomy,
-                            options.min_5S_len,
-                            options.min_16S_ar_len,
-                            options.min_16S_bac_len,
-                            options.min_23S_len,
-                            options.min_contig_len,
-                            options.include_user,
-                            options.genome_list,
-                            options.output_dir)
-                            
+                          options.gtdb_taxonomy,
+                          options.min_5S_len,
+                          options.min_16S_ar_len,
+                          options.min_16S_bac_len,
+                          options.min_23S_len,
+                          options.min_contig_len,
+                          options.include_user,
+                          options.genome_list,
+                          options.output_dir)
+
         self.logger.info('Results written to: %s' % options.output_dir)
-        
+
     def derep_tree(self, options):
         """Dereplicate tree."""
-        
+
         check_file_exists(options.input_tree)
         check_file_exists(options.gtdb_metadata)
         check_file_exists(options.msa_file)
         make_sure_path_exists(options.output_dir)
-        
+
         derep_tree = DereplicateTree()
         derep_tree.run(options.input_tree,
-                        options.lineage_of_interest,
-                        options.outgroup,
-                        options.gtdb_metadata,
-                        options.taxa_to_retain,
-                        options.msa_file,
-                        options.keep_unclassified,
-                        options.output_dir)
+                       options.lineage_of_interest,
+                       options.outgroup,
+                       options.gtdb_metadata,
+                       options.taxa_to_retain,
+                       options.msa_file,
+                       options.keep_unclassified,
+                       options.output_dir)
 
     def bootstrap(self, options):
         """Bootstrap multiple sequence alignment."""
+
+        check_dependencies(['FastTree'])
 
         if options.input_tree.lower() != 'none':
             check_file_exists(options.input_tree)
@@ -188,14 +190,14 @@ class OptionsParser():
 
         jackknife_markers = JackknifeMarkers(options.cpus)
         output_tree = jackknife_markers.run(options.input_tree,
-                                                options.msa_file,
-                                                options.marker_info_file,
-                                                options.mask_file,
-                                                options.perc_markers,
-                                                options.num_replicates,
-                                                options.model,
-                                                options.jk_dir,
-                                                options.output_dir)
+                                            options.msa_file,
+                                            options.marker_info_file,
+                                            options.mask_file,
+                                            options.perc_markers,
+                                            options.num_replicates,
+                                            options.model,
+                                            options.jk_dir,
+                                            options.output_dir)
 
         self.logger.info('Jackknifed marker tree written to: %s' % output_tree)
 
@@ -208,12 +210,12 @@ class OptionsParser():
 
         jackknife_taxa = JackknifeTaxa(options.cpus)
         output_tree = jackknife_taxa.run(options.input_tree,
-                                            options.msa_file,
-                                            options.outgroup_ids,
-                                            options.perc_taxa,
-                                            options.num_replicates,
-                                            options.model,
-                                            options.output_dir)
+                                         options.msa_file,
+                                         options.outgroup_ids,
+                                         options.perc_taxa,
+                                         options.num_replicates,
+                                         options.model,
+                                         options.output_dir)
 
         self.logger.info('Jackknifed taxa tree written to: %s' % output_tree)
 
@@ -222,10 +224,10 @@ class OptionsParser():
 
         combineSupport = CombineSupport()
         combineSupport.run(options.support_type,
-                            options.bootstrap_tree,
-                            options.jk_marker_tree,
-                            options.jk_taxa_tree,
-                            options.output_tree)
+                           options.bootstrap_tree,
+                           options.jk_marker_tree,
+                           options.jk_taxa_tree,
+                           options.output_tree)
 
     def support_wf(self, options):
         """"Perform entire tree support workflow."""
@@ -283,7 +285,7 @@ class OptionsParser():
 
         check_file_exists(options.input_taxonomy)
         check_file_exists(options.metadata_file)
-        
+
         user_to_uba = {}
         if options.uba_mapping_file:
             self.logger.info('Parsing genome ID mapping file.')
@@ -297,15 +299,17 @@ class OptionsParser():
         # get representative genome information
         rep_metadata = read_gtdb_metadata(options.metadata_file, ['gtdb_representative',
                                                                   'gtdb_clustered_genomes'])
-                                                                  
+
         rep_metadata = {canonical_gid(gid): values
-                                    for gid, values in rep_metadata.items()}
-                                    
+                        for gid, values in rep_metadata.items()}
+
         rep_metadata = {user_to_uba.get(gid, gid): values
-                                    for gid, values in rep_metadata.items()}
-                                    
+                        for gid, values in rep_metadata.items()}
+
         explict_tax = Taxonomy().read(options.input_taxonomy)
-        
+
+        self.logger.info(f' - identified {len(rep_metadata):,} genomes')
+
         # sanity check all representatives have a taxonomy string
         rep_count = 0
         for gid in rep_metadata:
@@ -313,13 +317,14 @@ class OptionsParser():
             if is_rep_genome:
                 rep_count += 1
                 if gid not in explict_tax:
-                    self.logger.error('Expected to find {} in input taxonomy as it is a GTDB representative.'.format(gid))
+                    self.logger.error(
+                        'Expected to find {} in input taxonomy as it is a GTDB representative.'.format(gid))
                     sys.exit(-1)
-                    
+
         self.logger.info('Identified {:,} representatives in metadata file and {:,} genomes in input taxonomy file.'.format(
-                            rep_count,
-                            len(explict_tax)))
-        
+            rep_count,
+            len(explict_tax)))
+
         # propagate taxonomy to genomes clustered with each representative
         fout = open(options.output_taxonomy, 'w')
         for rid, taxon_list in explict_tax.items():
@@ -340,7 +345,8 @@ class OptionsParser():
                         else:
                             self.logger.warning('Skipping {} as it is not in GTDB metadata file.'.format(cid))
             else:
-                self.logger.error('Did not expected to find {} in input taxonomy as it is not a GTDB representative.'.format(rid))
+                self.logger.error(
+                    'Did not expected to find {} in input taxonomy as it is not a GTDB representative.'.format(rid))
                 sys.exit(-1)
 
         self.logger.info('Taxonomy written to: {}'.format(options.output_taxonomy))
@@ -352,9 +358,9 @@ class OptionsParser():
 
         outgroup_in_tree = set()
         tree = dendropy.Tree.get_from_path(options.input_tree,
-                                            schema='newick',
-                                            rooting='force-rooted',
-                                            preserve_underscores=True)
+                                           schema='newick',
+                                           rooting='force-rooted',
+                                           preserve_underscores=True)
 
         for node in tree.internal_nodes():
             if node.label:
@@ -370,12 +376,12 @@ class OptionsParser():
                         node.label = None
 
         tree.write_to_path(options.output_tree,
-                            schema='newick',
-                            suppress_rooting=True,
-                            unquoted_underscores=True)
+                           schema='newick',
+                           suppress_rooting=True,
+                           unquoted_underscores=True)
 
         self.logger.info('Stripped tree written to: %s' % options.output_tree)
-        
+
     def rm_support(self, options):
         """Remove support values from tree."""
 
@@ -383,9 +389,9 @@ class OptionsParser():
 
         outgroup_in_tree = set()
         tree = dendropy.Tree.get_from_path(options.input_tree,
-                                            schema='newick',
-                                            rooting='force-rooted',
-                                            preserve_underscores=True)
+                                           schema='newick',
+                                           rooting='force-rooted',
+                                           preserve_underscores=True)
 
         for node in tree.internal_nodes():
             if node.label:
@@ -399,60 +405,60 @@ class OptionsParser():
                         f = float(node.label)
                         node.label = None
                     except ValueError:
-                        pass # keep other labels
+                        pass  # keep other labels
 
         tree.write_to_path(options.output_tree,
-                            schema='newick',
-                            suppress_rooting=True,
-                            unquoted_underscores=True)
+                           schema='newick',
+                           suppress_rooting=True,
+                           unquoted_underscores=True)
 
         self.logger.info('Stripped tree written to: %s' % options.output_tree)
-        
+
     def pull(self, options):
         """Create taxonomy file from a decorated tree."""
 
         check_file_exists(options.input_tree)
 
         if options.no_validation:
-            tree = dendropy.Tree.get_from_path(options.input_tree, 
-                                                schema='newick', 
-                                                rooting="force-rooted", 
-                                                preserve_underscores=True)
+            tree = dendropy.Tree.get_from_path(options.input_tree,
+                                               schema='newick',
+                                               rooting="force-rooted",
+                                               preserve_underscores=True)
 
             taxonomy = {}
             for leaf in tree.leaf_node_iter():
                 taxon_id = leaf.taxon.label
-                
+
                 node = leaf.parent_node
                 taxa = []
                 while node:
                     support, taxon, aux_info = parse_label(node.label)
                     if taxon:
-                        for t in map(str.strip, taxon.split(';'))[::-1]:
+                        for t in list(map(str.strip, taxon.split(';')))[::-1]:
                             taxa.append(t)
                     node = node.parent_node
-                    
+
                 taxonomy[taxon_id] = taxa[::-1]
         else:
             taxonomy = Taxonomy().read_from_tree(options.input_tree)
-                                                
+
         Taxonomy().write(taxonomy, options.output_taxonomy)
-            
+
         self.logger.info('Stripped tree written to: %s' % options.output_taxonomy)
-        
+
     def append(self, options):
         """Append command"""
-        
+
         check_file_exists(options.input_tree)
         check_file_exists(options.input_taxonomy)
 
         taxonomy = Taxonomy().read(options.input_taxonomy)
 
-        tree = dendropy.Tree.get_from_path(options.input_tree, 
-                                            schema='newick', 
-                                            rooting='force-rooted', 
-                                            preserve_underscores=True)
-        
+        tree = dendropy.Tree.get_from_path(options.input_tree,
+                                           schema='newick',
+                                           rooting='force-rooted',
+                                           preserve_underscores=True)
+
         for n in tree.leaf_node_iter():
             taxa_str = taxonomy.get(n.taxon.label, None)
             if taxa_str == None:
@@ -460,84 +466,82 @@ class OptionsParser():
                 sys.exit(-1)
             n.taxon.label = n.taxon.label + '|' + '; '.join(taxonomy[n.taxon.label])
 
-        tree.write_to_path(options.output_tree, 
-                            schema='newick', 
-                            suppress_rooting=True, 
-                            unquoted_underscores=True)
+        tree.write_to_path(options.output_tree,
+                           schema='newick',
+                           suppress_rooting=True,
+                           unquoted_underscores=True)
 
         self.logger.info('Decorated tree written to: %s' % options.output_tree)
-        
+
     def prune(self, options):
         """Prune tree."""
-        
+
         check_file_exists(options.input_tree)
         check_file_exists(options.taxa_to_retain)
-        
+
         prune = Prune()
         prune.run(options.input_tree,
-                    options.taxa_to_retain,
-                    options.output_tree)
-                    
+                  options.taxa_to_retain,
+                  options.output_tree)
+
     def phylogenetic_diversity(self, options):
         """Calculate phylogenetic diversity of extant taxa."""
-        
+
         check_file_exists(options.tree)
         check_file_exists(options.taxa_list)
-        
+
         pd = PhylogeneticDiversity()
         rtn = pd.pd(options.tree, options.taxa_list, options.per_taxa_pg_file)
         total_pd, num_in_taxa, in_pd, num_out_taxa, out_pd = rtn
         total_taxa = num_in_taxa + num_out_taxa
         in_pg = total_pd - out_pd
-                                            
+
         # report phylogenetic diversity (PD) and gain (PG)
         print('')
         print('\tNo. Taxa\tPD\tPercent PD')
         print('%s\t%d\t%.2f\t%.2f%%' % ('Full tree', total_taxa, total_pd, 100))
-        
+
         print('%s\t%d\t%.2f\t%.3f%%' % ('Outgroup taxa (PD)',
-                                            num_out_taxa,
-                                            out_pd, 
-                                            out_pd * 100 / total_pd))
+                                        num_out_taxa,
+                                        out_pd,
+                                        out_pd * 100 / total_pd))
 
         print('%s\t%d\t%.2f\t%.3f%%' % ('Ingroup taxa (PD)',
-                                            num_in_taxa,
-                                            in_pd, 
-                                            (in_pd) * 100 / total_pd))
-                                        
+                                        num_in_taxa,
+                                        in_pd,
+                                        (in_pd) * 100 / total_pd))
+
         print('%s\t%d\t%.2f\t%.3f%%' % ('Ingroup taxa (PG)',
-                                            num_in_taxa,
-                                            in_pg, 
-                                            in_pg * 100 / total_pd))
-                  
+                                        num_in_taxa,
+                                        in_pg,
+                                        in_pg * 100 / total_pd))
+
     def phylogenetic_diversity_clade(self, options):
         """Calculate phylogenetic diversity of named groups."""
 
         check_file_exists(options.decorated_tree)
-        
+
         pd = PhylogeneticDiversity()
-        pd.pd_clade(options.decorated_tree, 
-                    options.taxa_list, 
+        pd.pd_clade(options.decorated_tree,
+                    options.taxa_list,
                     options.output_file)
-        
+
     def arb_records(self, options):
         """Create an ARB records file from GTDB metadata."""
 
         check_file_exists(options.metadata_file)
-        
+
         arb = Arb()
-        arb.create_records(options.metadata_file, 
-                            options.msa_file, 
-                            options.taxonomy_file, 
-                            options.genome_list, 
-                            options.output_file)
+        arb.create_records(options.metadata_file,
+                           options.msa_file,
+                           options.taxonomy_file,
+                           options.genome_list,
+                           options.output_file)
 
     def parse_options(self, options):
         """Parse user options and call the correct pipeline(s)"""
 
         logging.basicConfig(format='', level=logging.INFO)
-
-        check_dependencies(('FastTree', 'hmmsearch'))
 
         if options.subparser_name == 'ssu_tree':
             self.ssu_tree(options)

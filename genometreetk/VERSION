@@ -1,3 +1,6 @@
+0.1.8
+- better support for doing bootstrap trees across multiple servers
+
 0.1.7
 - updated propagate command to work with new Gxyz style genome IDs
 - updated 'bootstrap' command to not require input tree
