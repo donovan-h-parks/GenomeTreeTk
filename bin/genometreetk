@@ -222,6 +222,7 @@ if __name__ == '__main__':
     bootstrap_parser.add_argument('-g', '--gamma', action='store_true', help="indicates that the GAMMA model should be used")
     bootstrap_parser.add_argument('-r', '--num_replicates', help="number of bootstrap replicates to perform", type=int, default=100)
     bootstrap_parser.add_argument('-f', '--fraction', help="fraction of alignment to subsample", type=float, default=1.0)
+    bootstrap_parser.add_argument('--msa_only', help="only produce MSA replicates", action='store_true')
     bootstrap_parser.add_argument('-c', '--cpus', help='number of cpus', type=int, default=1)
     bootstrap_parser.add_argument('--silent', help="suppress output", action='store_true')
 

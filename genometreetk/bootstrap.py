@@ -54,6 +54,10 @@ class Bootstrap(object):
         if os.path.exists(output_msa) and os.path.getsize(output_msa) > 0:
             self.logger.warning('Skipping {} as it already exists.'.format(output_msa))
             return True
+        bootstrap_alignment(self.msa, output_msa, frac=self.frac)
+
+        if self.msa_only:
+          return True
 
         output_tree = os.path.join(self.replicate_dir, 'bootstrap_tree.r_' + str(replicated_num) + '.tree')
         fast_tree_output = os.path.join(self.replicate_dir, 'bootstrap_fasttree.r_' + str(replicated_num) + '.out')
@@ -61,9 +65,8 @@ class Bootstrap(object):
             self.logger.warning('Skipping {} as it already exists.'.format(fast_tree_output))
             return True
 
-        bootstrap_alignment(self.msa, output_msa, frac=self.frac)
         fast_tree = FastTree(multithreaded=False)
-        cmd = fast_tree.run(output_msa, self.base_type, self.model, self.gamma, output_tree, fast_tree_output)
+        fast_tree.run(output_msa, self.base_type, self.model, self.gamma, output_tree, fast_tree_output)
 
         return True
 
@@ -81,6 +84,7 @@ class Bootstrap(object):
                 base_type, 
                 frac,
                 boot_dir,
+                msa_only,
                 output_dir):
         """Bootstrap multiple sequence alignment.
 
@@ -120,6 +124,7 @@ class Bootstrap(object):
 
             # calculate replicates
             self.logger.info('Calculating bootstrap replicates:')
+            self.msa_only = msa_only
             parallel = Parallel(self.cpus)
             parallel.run(self._producer, None, range(num_replicates), self._progress)
 
@@ -133,9 +138,10 @@ class Bootstrap(object):
           
         # calculate support values
         self.logger.info('Calculating bootstrap support values.')
-        output_tree = os.path.join(output_dir, remove_extension(input_tree) + '.bootstrap.tree')
-        
-        if input_tree.lower() != 'none':
-            bootstrap_support(input_tree, rep_tree_files, output_tree)
+       
+        output_tree = None
+        if input_tree.lower() != 'none' and not msa_only:
+          output_tree = os.path.join(output_dir, remove_extension(input_tree) + '.bootstrap.tree')
+          bootstrap_support(input_tree, rep_tree_files, output_tree)
 
         return output_tree

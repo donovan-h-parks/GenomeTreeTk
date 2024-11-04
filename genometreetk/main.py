@@ -176,6 +176,7 @@ class OptionsParser():
                                     options.base_type,
                                     options.fraction,
                                     options.boot_dir,
+                                    options.msa_only,
                                     options.output_dir)
 
         self.logger.info('Bootstrapped tree written to: %s' % output_tree)

@@ -1,3 +1,6 @@
+0.1.9
+- added support to create MSA replicates without inferring replicate trees
+
 0.1.8
 - better support for doing bootstrap trees across multiple servers
 
