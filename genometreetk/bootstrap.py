@@ -53,8 +53,8 @@ class Bootstrap(object):
         output_msa = os.path.join(self.replicate_dir, 'bootstrap_msa.r_' + str(replicated_num) + '.fna')
         if os.path.exists(output_msa) and os.path.getsize(output_msa) > 0:
             self.logger.warning('Skipping {} as it already exists.'.format(output_msa))
-            return True
-        bootstrap_alignment(self.msa, output_msa, frac=self.frac)
+        else:
+            bootstrap_alignment(self.msa, output_msa, frac=self.frac)
 
         if self.msa_only:
           return True
@@ -113,8 +113,10 @@ class Bootstrap(object):
         self.gamma = gamma
         self.base_type = base_type
         self.frac = frac
+        self.msa_only = msa_only
 
         rep_tree_files = []
+        msa_files = []
         if not boot_dir:
             self.replicate_dir = os.path.join(output_dir, 'replicates')
             make_sure_path_exists(self.replicate_dir)
@@ -124,7 +126,6 @@ class Bootstrap(object):
 
             # calculate replicates
             self.logger.info('Calculating bootstrap replicates:')
-            self.msa_only = msa_only
             parallel = Parallel(self.cpus)
             parallel.run(self._producer, None, range(num_replicates), self._progress)
 
@@ -134,13 +135,21 @@ class Bootstrap(object):
             for f in os.listdir(boot_dir):
                 if f.endswith('.tree') or f.endswith('.tre') or f.endswith('.treefile'):
                     rep_tree_files.append(os.path.join(boot_dir, f))
-            self.logger.info('Read %d bootstrap replicates.' % len(rep_tree_files))
-          
+                if f.endswith('.fna'):
+                    msa_files.append(os.path.join(boot_dir, f))
+            
+            if len(rep_tree_files) > 0:
+                self.logger.info('Read %d bootstrap replicates.' % len(rep_tree_files))
+            else:
+                self.logger.info('Read %d MSA replicates.' % len(msa_files))
+                self.replicate_dir = os.path.join(output_dir, 'replicates')
+                parallel = Parallel(self.cpus)
+                parallel.run(self._producer, None, range(num_replicates), self._progress)
+
         # calculate support values
-        self.logger.info('Calculating bootstrap support values.')
-       
         output_tree = None
         if input_tree.lower() != 'none' and not msa_only:
+          self.logger.info('Calculating bootstrap support values.')
           output_tree = os.path.join(output_dir, remove_extension(input_tree) + '.bootstrap.tree')
           bootstrap_support(input_tree, rep_tree_files, output_tree)
 
