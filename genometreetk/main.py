@@ -38,6 +38,7 @@ from genometreetk.derep_tree import DereplicateTree
 from genometreetk.prune import Prune
 from genometreetk.reroot_tree import RerootTree
 from genometreetk.rna_workflow import RNA_Workflow
+from genometreetk.msa_filter import MSA_Filter
 
 csv.field_size_limit(sys.maxsize)
 
@@ -137,6 +138,25 @@ class OptionsParser():
                           options.output_dir)
 
         self.logger.info('Results written to: %s' % options.output_dir)
+
+    def msa_filter(self, options):
+        """Filter MSA based on gaps and conservation of bases."""
+
+        check_file_exists(options.marker_info_file)
+        check_file_exists(options.witchi_info_file)
+        check_file_exists(options.witch_msa_file)
+        make_sure_path_exists(options.output_dir)
+
+        msa_filter = MSA_Filter(options.msa_length,
+                            options.min_perc_aa,
+                            options.min_consensus,
+                            options.max_consensus)
+        msa_filter.run(options.marker_info_file,
+                            options.witchi_info_file,
+                            options.witch_msa_file,
+                            options.output_dir)
+
+        self.logger.info('Filtered MSA written to: %s' % options.output_dir)
 
     def derep_tree(self, options):
         """Dereplicate tree."""
@@ -552,6 +572,8 @@ class OptionsParser():
             self.rna_tree(options)
         elif options.subparser_name == 'rna_dump':
             self.rna_dump(options)
+        elif options.subparser_name == 'msa_filter':
+            self.msa_filter(options)
         elif options.subparser_name == 'derep_tree':
             self.derep_tree(options)
         elif options.subparser_name == 'bootstrap':
@@ -589,5 +611,7 @@ class OptionsParser():
         else:
             self.logger.error('Unknown GenomeTreeTk command: ' + options.subparser_name + '\n')
             sys.exit(-1)
+
+        self.logger.info('Done.')
 
         return 0

@@ -1,3 +1,6 @@
+0.2.0
+- added msa_filter method
+
 0.1.9
 - added support to create MSA replicates without inferring replicate trees
 - added support to infer trees from MSA replicates if they do not already exist

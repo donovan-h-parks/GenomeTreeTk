@@ -51,6 +51,9 @@ def print_help():
       rna_tree -> Infer a concatenated 16S + 23S tree spanning GTDB genomes
       rna_dump -> Dump all 5S, 16S, and 23S sequences to files
 
+    Multiple sequence alignment:
+      msa_filter -> Filter MSA based on gaps and conservation of bases
+
     Assess stability of tree:
       derep_tree -> Dereplicate tree to taxa of interest
       bootstrap  -> Bootstrap multiple sequence alignment
@@ -195,6 +198,20 @@ if __name__ == '__main__':
     rna_dump_parser.add_argument('--genome_list', help="restrict selection to genomes in list")
     rna_dump_parser.add_argument('--silent', help="suppress output", action='store_true')
 
+    # assess robustness of genome tree using classic bootstrapping
+    msa_filter_parser = subparsers.add_parser('msa_filter',
+                                        formatter_class=CustomHelpFormatter,
+                                        description='Filter MSA based on gaps and conservation of bases.')
+    msa_filter_parser.add_argument('marker_info_file', help="file indicate marker genes in concatenated alignment (e.g. gtdb_r<cur>_bac120_markers_info.tsv)")
+    msa_filter_parser.add_argument('witchi_info_file', help="file indicating columns pruned by WitChi (e.g. gtdb_r<cur>_bac120_concatenated_quartic_s400_touchdown_pruned.tsv)")
+    msa_filter_parser.add_argument('witch_msa_file', help="file with WitChi pruned MSA (e.g. gtdb_r<cur>_bac120_concatenated_quartic_s400_touchdown_pruned.fasta)")
+    msa_filter_parser.add_argument('output_dir', help="output directory")
+    msa_filter_parser.add_argument('--msa_length', help="desired MSA length after random subsampling", type=int, default=5000)
+    msa_filter_parser.add_argument('--min_perc_aa', help="filter genomes with an insufficient percentage of AA in the MSA", type=int, default=50)
+    msa_filter_parser.add_argument('--min_consensus', help="minimum percentage of the same amino acid required to retain column (inclusive bound)", type=int, default=25)
+    msa_filter_parser.add_argument('--max_consensus', help="maximum percentage of the same amino acid required to retain column (exclusive bound)", type=int, default=95)
+    msa_filter_parser.add_argument('--silent', help="suppress output", action='store_true')
+    
     # assess robustness of genome tree using classic bootstrapping
     derep_tree_parser = subparsers.add_parser('derep_tree',
                                         formatter_class=CustomHelpFormatter,
