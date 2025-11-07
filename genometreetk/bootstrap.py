@@ -151,6 +151,6 @@ class Bootstrap(object):
         if input_tree.lower() != 'none' and not msa_only:
           self.logger.info('Calculating bootstrap support values.')
           output_tree = os.path.join(output_dir, remove_extension(input_tree) + '.bootstrap.tree')
-          bootstrap_support(input_tree, rep_tree_files, output_tree)
+          bootstrap_support(input_tree, rep_tree_files, output_tree, self.cpus)
 
         return output_tree
