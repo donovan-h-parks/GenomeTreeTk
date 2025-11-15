@@ -1,3 +1,6 @@
+0.2.1
+- modified bootstrap method to support use of FastTreeMP with multiple CPUs
+
 0.2.0
 - added msa_filter method
 

@@ -28,7 +28,7 @@ from biolib.common import remove_extension, make_sure_path_exists
 class Bootstrap(object):
     """Assess robustness of genome tree by bootstrapping multiple sequence alignment."""
 
-    def __init__(self, cpus):
+    def __init__(self, cpus, multiple_processors=False):
         """Initialization.
 
         Parameters
@@ -40,6 +40,7 @@ class Bootstrap(object):
         self.logger = logging.getLogger()
 
         self.cpus = cpus
+        self.mp = multiple_processors
 
     def _producer(self, replicated_num):
         """Infer tree from bootstrapped multiple sequence alignment.
@@ -65,7 +66,7 @@ class Bootstrap(object):
             self.logger.warning('Skipping {} as it already exists.'.format(fast_tree_output))
             return True
 
-        fast_tree = FastTree(multithreaded=False)
+        fast_tree = FastTree(multithreaded=self.mp)
         fast_tree.run(output_msa, self.base_type, self.model, self.gamma, output_tree, fast_tree_output)
 
         return True

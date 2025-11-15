@@ -187,7 +187,7 @@ class OptionsParser():
             check_file_exists(options.msa_file)
         make_sure_path_exists(options.output_dir)
 
-        bootstrap = Bootstrap(options.cpus)
+        bootstrap = Bootstrap(options.cpus, options.mp)
         output_tree = bootstrap.run(options.input_tree,
                                     options.msa_file,
                                     options.num_replicates,
