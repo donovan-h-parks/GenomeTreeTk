@@ -203,16 +203,17 @@ class MSA_Filter(object):
             mask_idx_map[mask_idx] = idx
             mask_idx += 1
 
+        new_mask = list(original_mask)
         for idx, state in enumerate(filtered_mask):
             if state == 1:
                 continue
             
             orig_mask_idx = mask_idx_map[idx]
-            assert original_mask[orig_mask_idx] == 1
+            assert new_mask[orig_mask_idx] == 1
 
-            original_mask[orig_mask_idx] = 0
+            new_mask[orig_mask_idx] = 0
 
-        return original_mask
+        return new_mask
 
     def identify_valid_columns(self, start: int, end: int, seqs: Dict[str, str]) -> Tuple[set, int, int, int]:
         """Identify columns meeting gap and amino acid ubiquity criteria (micro-optimized)."""
@@ -343,8 +344,9 @@ class MSA_Filter(object):
         marker_info = self.parse_marker_info(marker_info_file)
 
         # determine columns trimmed by WitChi
-        self.logger
+        self.logger.info('Determining columns trimmed by WitChi:')
         witchi_num_trimmed_cols, witchi_mask = self.parse_witchi_info(marker_info, witchi_info_file)
+        self.logger.info(f' - retained columns: {sum(witchi_mask)}')
         
         # write out WitChi mask and filtering statistics
         with open(os.path.join(output_dir, 'witchi_mask.txt'), 'w') as mask_file:
@@ -391,13 +393,14 @@ class MSA_Filter(object):
         self.logger.info(f' - subsampled MSA is {len(rnd_sampled_cols):,} columns')
 
         subsampled_mask = [1 if i in rnd_sampled_cols else 0 for i in range(len(first_seq))]
-        with open(os.path.join(output_dir, 'subsampled_mask.txt'), 'w') as mask_file:
-            mask_file.write(''.join([str(n) for n in subsampled_mask]))
+        final_mask = self.combine_mask(witchi_mask, subsampled_mask)
+        with open(os.path.join(output_dir, 'final_mask.txt'), 'w') as mask_file:
+            mask_file.write(''.join([str(n) for n in final_mask]))
 
         # create filtered and subsampled MSA
         final_msa = {}
         for seq_id, seq in witchi_msa.items():
-            masked_seq = ''.join([seq[i] for i in rnd_sampled_cols])
+            masked_seq = ''.join([seq[i] for i in sorted(rnd_sampled_cols)])
             final_msa[seq_id] = masked_seq
 
         # write out filtered MSA

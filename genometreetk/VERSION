@@ -1,3 +1,7 @@
+0.2.2
+- fixed bug with filtered MSA columns being written out in a random order within each marker
+- now generating final_mask.txt which is the mask after filtering and subsampling
+
 0.2.1
 - modified bootstrap method to support use of FastTreeMP with multiple CPUs
 
