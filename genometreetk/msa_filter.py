@@ -340,13 +340,19 @@ class MSA_Filter(object):
         """
 
         # determine number of columns for each marker gene
-        self.logger.info('Parsing marker info file.')
+        self.logger.info('Parsing marker info file:')
         marker_info = self.parse_marker_info(marker_info_file)
+        concatenated_marker_len = sum([mi.length for mi in marker_info])
+        self.logger.info(f' - concatenated marker length: {concatenated_marker_len:,}')
 
         # determine columns trimmed by WitChi
         self.logger.info('Determining columns trimmed by WitChi:')
         witchi_num_trimmed_cols, witchi_mask = self.parse_witchi_info(marker_info, witchi_info_file)
-        self.logger.info(f' - retained columns: {sum(witchi_mask)}')
+        self.logger.info(f' - retained columns: {sum(witchi_mask):,}')
+
+        if len(witchi_mask) != concatenated_marker_len:
+            self.logger.error(f'Concatenated marker length and length of WitChi mask are different: {concatenated_marker_len:,} vs {len(witchi_mask):,}')
+            sys.exit(1)
         
         # write out WitChi mask and filtering statistics
         with open(os.path.join(output_dir, 'witchi_mask.txt'), 'w') as mask_file:
@@ -359,6 +365,10 @@ class MSA_Filter(object):
         witchi_msa = read_fasta(witch_msa_file)
         first_seq = next(iter(witchi_msa.values()))
         self.logger.info(' - MSA contains {:,} sequences and has {:,} columns'.format(len(witchi_msa), len(first_seq)))
+
+        if sum(witchi_mask) != len(first_seq):
+            self.logger.error(f'WitChi mask and length WitChi-filtered MSA are different: {sum(witchi_mask):,} vs {len(first_seq):,}')
+            sys.exit(1)
 
         # filter columns in WitChi MSA
         self.logger.info('Identifying columns to retain based on gap and AA conservation criteria:')
@@ -390,12 +400,17 @@ class MSA_Filter(object):
         num_markers_below_cols_to_sample = sum([1 for f in filter_info if len(f.valid_cols) < cols_to_sample])
         self.logger.info(f' - sampling {cols_to_sample:,} columns from each marker')
         self.logger.info(f' - {num_markers_below_cols_to_sample:,} markers had fewer than {cols_to_sample:,} columns available for sampling')
-        self.logger.info(f' - subsampled MSA is {len(rnd_sampled_cols):,} columns')
+        self.logger.info(f' - subsampled MSA has {len(rnd_sampled_cols):,} columns')
 
         subsampled_mask = [1 if i in rnd_sampled_cols else 0 for i in range(len(first_seq))]
         final_mask = self.combine_mask(witchi_mask, subsampled_mask)
+        num_mask_cols = sum(final_mask)
         with open(os.path.join(output_dir, 'final_mask.txt'), 'w') as mask_file:
             mask_file.write(''.join([str(n) for n in final_mask]))
+
+        if num_mask_cols != rnd_sampled_cols:
+            self.logger.error(f"Final mask and MSA do not have the sample number of cols: {num_mask_cols} vs {len(rnd_sampled_cols)}")
+            sys.exit(1)
 
         # create filtered and subsampled MSA
         final_msa = {}
