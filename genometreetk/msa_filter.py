@@ -408,7 +408,7 @@ class MSA_Filter(object):
         with open(os.path.join(output_dir, 'final_mask.txt'), 'w') as mask_file:
             mask_file.write(''.join([str(n) for n in final_mask]))
 
-        if num_mask_cols != rnd_sampled_cols:
+        if num_mask_cols != len(rnd_sampled_cols):
             self.logger.error(f"Final mask and MSA do not have the sample number of cols: {num_mask_cols} vs {len(rnd_sampled_cols)}")
             sys.exit(1)
 
