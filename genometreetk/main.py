@@ -51,7 +51,8 @@ class OptionsParser():
     def ssu_tree(self, options):
         """Infer 16S tree spanning GTDB genomes."""
 
-        check_dependencies(['mothur', 'ssu-align', 'ssu-mask', 'FastTreeMP', 'blastn'])
+        check_dependencies(
+            ['mothur', 'ssu-align', 'ssu-mask', 'FastTreeMP', 'blastn'])
 
         check_file_exists(options.gtdb_metadata_file)
         check_file_exists(options.gtdb_ssu_file)
@@ -76,7 +77,8 @@ class OptionsParser():
     def lsu_tree(self, options):
         """Infer 23S tree spanning GTDB genomes."""
 
-        check_dependencies(['esl-sfetch', 'cmsearch', 'cmalign', 'esl-alimask', 'FastTreeMP', 'blastn'])
+        check_dependencies(
+            ['esl-sfetch', 'cmsearch', 'cmalign', 'esl-alimask', 'FastTreeMP', 'blastn'])
 
         check_file_exists(options.gtdb_metadata_file)
         check_file_exists(options.gtdb_lsu_file)
@@ -148,13 +150,13 @@ class OptionsParser():
         make_sure_path_exists(options.output_dir)
 
         msa_filter = MSA_Filter(options.msa_length,
-                            options.min_perc_aa,
-                            options.min_consensus,
-                            options.max_consensus)
+                                options.min_perc_aa,
+                                options.min_consensus,
+                                options.max_consensus)
         msa_filter.run(options.marker_info_file,
-                            options.witchi_info_file,
-                            options.witch_msa_file,
-                            options.output_dir)
+                       options.witchi_info_file,
+                       options.witch_msa_file,
+                       options.output_dir)
 
         self.logger.info('Filtered MSA written to: %s' % options.output_dir)
 
@@ -250,6 +252,14 @@ class OptionsParser():
                            options.jk_taxa_tree,
                            options.output_tree)
 
+    def sh_uf_hack(self, options):
+        """Convert SH-aLRT and UFBoot support values into a single number."""
+
+        check_file_exists(options.input_tree)
+
+        cs = CombineSupport()
+        cs.sh_uf_hack(options.input_tree, options.output_tree)
+
     def support_wf(self, options):
         """"Perform entire tree support workflow."""
 
@@ -274,10 +284,12 @@ class OptionsParser():
         for genome_id, taxa in Taxonomy().read(options.taxonomy_file).items():
             if options.outgroup_taxon in taxa:
                 outgroup.add(genome_id)
-        self.logger.info('Identifying %d genomes in the outgroup.' % len(outgroup))
+        self.logger.info(
+            'Identifying %d genomes in the outgroup.' % len(outgroup))
 
         reroot = RerootTree()
-        reroot.root_with_outgroup(options.input_tree, options.output_tree, outgroup)
+        reroot.root_with_outgroup(
+            options.input_tree, options.output_tree, outgroup)
 
     def fill_ranks(self, options):
         """Ensure taxonomy strings contain all 7 canonical ranks."""
@@ -299,7 +311,8 @@ class OptionsParser():
 
         fout.close()
 
-        self.logger.info('Revised taxonomy written to: %s' % options.output_taxonomy)
+        self.logger.info('Revised taxonomy written to: %s' %
+                         options.output_taxonomy)
 
     def propagate(self, options):
         """Propagate labels to all genomes in a cluster."""
@@ -315,7 +328,8 @@ class OptionsParser():
                     tokens = line.strip().split('\t')
                     if len(tokens) == 2:
                         user_to_uba[tokens[0]] = tokens[1]
-            self.logger.info(' - found mappings for {:,} genomes.'.format(len(user_to_uba)))
+            self.logger.info(
+                ' - found mappings for {:,} genomes.'.format(len(user_to_uba)))
 
         # get representative genome information
         rep_metadata = read_gtdb_metadata(options.metadata_file, ['gtdb_representative',
@@ -334,7 +348,8 @@ class OptionsParser():
         # sanity check all representatives have a taxonomy string
         rep_count = 0
         for gid in rep_metadata:
-            is_rep_genome, clustered_genomes = rep_metadata.get(gid, (None, None))
+            is_rep_genome, clustered_genomes = rep_metadata.get(
+                gid, (None, None))
             if is_rep_genome:
                 rep_count += 1
                 if gid not in explict_tax:
@@ -364,13 +379,15 @@ class OptionsParser():
                         if cid in rep_metadata:
                             fout.write('{}\t{}\n'.format(cid, taxonomy_str))
                         else:
-                            self.logger.warning('Skipping {} as it is not in GTDB metadata file.'.format(cid))
+                            self.logger.warning(
+                                'Skipping {} as it is not in GTDB metadata file.'.format(cid))
             else:
                 self.logger.error(
                     'Did not expected to find {} in input taxonomy as it is not a GTDB representative.'.format(rid))
                 sys.exit(-1)
 
-        self.logger.info('Taxonomy written to: {}'.format(options.output_taxonomy))
+        self.logger.info('Taxonomy written to: {}'.format(
+            options.output_taxonomy))
 
     def strip(self, options):
         """Remove taxonomic labels from tree."""
@@ -465,7 +482,8 @@ class OptionsParser():
 
         Taxonomy().write(taxonomy, options.output_taxonomy)
 
-        self.logger.info('Stripped tree written to: %s' % options.output_taxonomy)
+        self.logger.info('Stripped tree written to: %s' %
+                         options.output_taxonomy)
 
     def append(self, options):
         """Append command"""
@@ -483,9 +501,11 @@ class OptionsParser():
         for n in tree.leaf_node_iter():
             taxa_str = taxonomy.get(n.taxon.label, None)
             if taxa_str == None:
-                self.logger.error('Taxonomy file does not contain an entry for %s.' % n.label)
+                self.logger.error(
+                    'Taxonomy file does not contain an entry for %s.' % n.label)
                 sys.exit(-1)
-            n.taxon.label = n.taxon.label + '|' + '; '.join(taxonomy[n.taxon.label])
+            n.taxon.label = n.taxon.label + '|' + \
+                '; '.join(taxonomy[n.taxon.label])
 
         tree.write_to_path(options.output_tree,
                            schema='newick',
@@ -520,7 +540,8 @@ class OptionsParser():
         # report phylogenetic diversity (PD) and gain (PG)
         print('')
         print('\tNo. Taxa\tPD\tPercent PD')
-        print('%s\t%d\t%.2f\t%.2f%%' % ('Full tree', total_taxa, total_pd, 100))
+        print('%s\t%d\t%.2f\t%.2f%%' %
+              ('Full tree', total_taxa, total_pd, 100))
 
         print('%s\t%d\t%.2f\t%.3f%%' % ('Outgroup taxa (PD)',
                                         num_out_taxa,
@@ -584,6 +605,8 @@ class OptionsParser():
             self.jk_taxa(options)
         elif options.subparser_name == 'combine':
             self.combine(options)
+        elif options.subparser_name == 'sh_uf_hack':
+            self.sh_uf_hack(options)
         elif options.subparser_name == 'midpoint':
             self.midpoint(options)
         elif options.subparser_name == 'outgroup':
@@ -609,7 +632,8 @@ class OptionsParser():
         elif options.subparser_name == 'arb_records':
             self.arb_records(options)
         else:
-            self.logger.error('Unknown GenomeTreeTk command: ' + options.subparser_name + '\n')
+            self.logger.error('Unknown GenomeTreeTk command: ' +
+                              options.subparser_name + '\n')
             sys.exit(-1)
 
         self.logger.info('Done.')

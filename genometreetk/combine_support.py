@@ -25,7 +25,7 @@ class CombineSupport(object):
 
     def __init__(self):
         """Initialization."""
-        
+
         self.logger = logging.getLogger()
 
     def _collect_support_values(self, tree):
@@ -64,26 +64,79 @@ class CombineSupport(object):
           File to write tree with combined support values.
         """
 
-        assert(support_type in ['average', 'minimum'])
+        assert (support_type in ['average', 'minimum'])
 
-        tree = dendropy.Tree.get_from_path(bootstrap_tree, schema='newick', rooting='force-rooted', preserve_underscores=True)
+        tree = dendropy.Tree.get_from_path(
+            bootstrap_tree, schema='newick', rooting='force-rooted', preserve_underscores=True)
         bootstrap_support = self._collect_support_values(tree)
 
-        tree = dendropy.Tree.get_from_path(jk_marker_tree, schema='newick', rooting='force-rooted', preserve_underscores=True)
+        tree = dendropy.Tree.get_from_path(
+            jk_marker_tree, schema='newick', rooting='force-rooted', preserve_underscores=True)
         jk_marker_support = self._collect_support_values(tree)
 
-        tree = dendropy.Tree.get_from_path(jk_taxa_tree, schema='newick', rooting='force-rooted', preserve_underscores=True)
+        tree = dendropy.Tree.get_from_path(
+            jk_taxa_tree, schema='newick', rooting='force-rooted', preserve_underscores=True)
         jk_taxa_support = self._collect_support_values(tree)
 
         internalNodeNum = 0
         for node in tree.preorder_node_iter():
             if node.is_internal():
                 if support_type == 'average':
-                    support = (int(bootstrap_support[internalNodeNum]) + int(jk_marker_support[internalNodeNum]) + int(jk_taxa_support[internalNodeNum])) / 3.0
+                    support = (int(bootstrap_support[internalNodeNum]) + int(
+                        jk_marker_support[internalNodeNum]) + int(jk_taxa_support[internalNodeNum])) / 3.0
                 elif support_type == 'minimum':
-                    support = min(int(bootstrap_support[internalNodeNum]), int(jk_marker_support[internalNodeNum]), int(jk_taxa_support[internalNodeNum]))
+                    support = min(int(bootstrap_support[internalNodeNum]), int(
+                        jk_marker_support[internalNodeNum]), int(jk_taxa_support[internalNodeNum]))
 
                 node.label = '%s' % str(int(support + 0.5))
                 internalNodeNum += 1
 
-        tree.write_to_path(output_tree, schema='newick', suppress_rooting=True, unquoted_underscores=True)
+        tree.write_to_path(output_tree, schema='newick',
+                           suppress_rooting=True, unquoted_underscores=True)
+
+    def sh_uf_hack(self, input_tree, output_tree):
+        """Convert SH-aLRT and UFBoot support values into a single number.
+
+        Parameters
+        ----------
+        input_tree : str
+          Tree with SH-aLRT and UFBoot support values.
+        output_tree : str
+          Output tree with combined support values.
+        """
+
+        tree = dendropy.Tree.get_from_path(
+            input_tree, schema='newick', rooting='force-rooted', preserve_underscores=True)
+
+        for node in tree.preorder_node_iter():
+            if node.is_internal() and node.label is not None:
+                if ':' in node.label:
+                    support_values, name = node.label.split(':')
+                else:
+                    support_values = node.label
+                    name = None
+
+                sh_alrt, ufboot = support_values.split('/')
+
+                # create a single integer values that combines the SH-aLRT and UFBoot support values
+                # by taking the first digit of each. For example, if SH-aLRT is 95.2 and UFBoot is 88.7,
+                # then the combined support value would be 98. The exception is if SH-aLRT is 100 and UFBoot is 100,
+                # then the combined support value would be 100. If SH-aLRT is 100 and UFBoot is 99, the combined support
+                # value would be 99.
+                sh_alrt = int(round(float(sh_alrt)))
+                ufboot = int(round(float(ufboot)))
+                combined_value = int(f'{sh_alrt // 10}{ufboot // 10}')
+                if sh_alrt == 100 and ufboot == 100:
+                    combined_value = 100
+                elif sh_alrt == 100:
+                    combined_value = int(f'9{ufboot // 10}')
+                elif ufboot == 100:
+                    combined_value = int(f'{sh_alrt // 10}9')
+
+                if name is not None:
+                    node.label = f'{combined_value}:{name}'
+                else:
+                    node.label = f'{combined_value}'
+
+        tree.write_to_path(output_tree, schema='newick',
+                           suppress_rooting=True, unquoted_underscores=True)

@@ -60,6 +60,7 @@ def print_help():
       jk_markers -> Jackknife marker genes
       jk_taxa    -> Jackknife ingroup taxa
       combine    -> Combine all support values into a single tree
+      sh_uf_hack -> Convert SH-aLRT and UFBoot support values into a single number
 
     Reroot tree:
       midpoint -> Reroot tree at midpoint
@@ -284,6 +285,14 @@ if __name__ == '__main__':
     combine_parser.add_argument('output_tree', help="output tree")
     combine_parser.add_argument('-s', '--support_type', choices=['average', 'minimum'], help="type of support values to compute", default='average')
     combine_parser.add_argument('--silent', help="suppress output", action='store_true')
+
+    # convert SH-aLRT and UFBoot support values into a single number
+    sh_uf_hack = subparsers.add_parser('sh_uf_hack',
+                                        formatter_class=CustomHelpFormatter,
+                                        description='Convert SH-aLRT and UFBoot support values into a single number.')
+    sh_uf_hack.add_argument('input_tree', help="tree with SH-aLRT and UFBoot support values")
+    sh_uf_hack.add_argument('output_tree', help="output tree")
+    sh_uf_hack.add_argument('--silent', help="suppress output", action='store_true')
 
     # reroot tree at midpoint
     midpoint_parser = subparsers.add_parser('midpoint',
