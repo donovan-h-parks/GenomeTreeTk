@@ -1,3 +1,8 @@
+0.3.1
+- requires gtdblib >= 1.12.1
+- messages from gtdblib use the GenomeTreeTk log format, are written to genometreetk.log, and are suppressed by --silent
+- errors reported by gtdblib (e.g. a taxon without a rank prefix) are logged with exit code 1 instead of a traceback
+
 0.3.0
 - replaced biolib with gtdblib (>= 1.12.0); packaging now uses setuptools and requires Python >= 3.7
 - bootstrap: MSA replicates are created from a shared numpy matrix (about 7x faster and 4x less memory for 200,000 x 5,000 MSAs)
