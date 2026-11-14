@@ -32,6 +32,7 @@ import os
 import sys
 
 from gtdblib.cli.custom_help_formatter import CustomHelpFormatter
+from gtdblib.exception import GtdbLibException
 from gtdblib.util.shell.gtdbshutil import make_sure_path_exists
 
 from genometreetk import __version__
@@ -101,14 +102,21 @@ def logger_setup(output_dir, silent):
         Flag indicating if output to stdout should be suppressed.
     """
 
-    # setup general properties of logger; gtdblib adds a RichHandler to the
-    # root logger on import and sets its level to NOTSET, so existing handlers
-    # are removed to avoid every message being written twice and the level is
-    # set to INFO so debug messages from third-party libraries are not shown
+    # setup general properties of logger; existing handlers are removed so
+    # messages are not written twice if this function is called again
     logger = logging.getLogger('')
     for handler in list(logger.handlers):
         logger.removeHandler(handler)
     logger.setLevel(logging.INFO)
+
+    # gtdblib logs to the 'rich' logger, which it gives its own RichHandler and
+    # stops from propagating; route its messages through the handlers below so
+    # they use the same format, are written to the log file, and obey --silent
+    gtdblib_logger = logging.getLogger('rich')
+    for handler in list(gtdblib_logger.handlers):
+        gtdblib_logger.removeHandler(handler)
+    gtdblib_logger.setLevel(logging.NOTSET)
+    gtdblib_logger.propagate = True
     log_format = logging.Formatter(fmt="[%(asctime)s] %(levelname)s: %(message)s",
                                    datefmt="%Y-%m-%d %H:%M:%S")
 
@@ -439,6 +447,11 @@ if __name__ == '__main__':
         if e.code not in (0, None):
             print("\n  Controlled exit resulting from an unrecoverable error or warning.")
         raise
+    except GtdbLibException as e:
+        # errors in the input reported by gtdblib (e.g. invalid taxonomy strings)
+        logging.getLogger().error(str(e))
+        print("\n  Controlled exit resulting from an unrecoverable error or warning.")
+        sys.exit(1)
     except:
         print("\nUnexpected error:", sys.exc_info()[0])
         raise
