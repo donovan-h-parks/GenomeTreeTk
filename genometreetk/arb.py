@@ -20,12 +20,8 @@ import sys
 import csv
 import logging
 
-import biolib.seq_io as seq_io
-from biolib.taxonomy import Taxonomy
-
-from genometreetk.common import (read_gtdb_metadata,
-                                    read_genome_dir_file,
-                                    read_gtdb_taxonomy)
+import gtdblib.util.bio.seq_io as seq_io
+from gtdblib.taxonomy.taxonomy import read_taxonomy
 
 
 class Arb(object):
@@ -65,7 +61,7 @@ class Arb(object):
         
         taxonomy = {}
         if taxonomy_file:
-            taxonomy = Taxonomy().read(taxonomy_file)
+            taxonomy = read_taxonomy(taxonomy_file)
             
         genomes_to_keep = set()
         if genome_list:
@@ -79,7 +75,7 @@ class Arb(object):
             delimiter = '\t'
         
         header = True
-        for row in csv.reader(open(metadata_file, 'rb'), delimiter=delimiter):
+        for row in csv.reader(open(metadata_file, newline=''), delimiter=delimiter):
             if header:
                 fields = [f.lower().replace(' ', '_').replace('-', '_') for f in row[1:]]
                 if taxonomy:

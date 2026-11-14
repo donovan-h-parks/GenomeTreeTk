@@ -1,3 +1,21 @@
+0.3.0
+- replaced biolib with gtdblib (>= 1.12.0); packaging now uses setuptools and requires Python >= 3.7
+- bootstrap: MSA replicates are created from a shared numpy matrix (about 7x faster and 4x less memory for 200,000 x 5,000 MSAs)
+- bootstrap: added --seed; replicates are identical for any number of CPUs
+- bootstrap: reruns safely resume interrupted runs; FastTree failures are reported instead of ignored
+- bootstrap: fixed --boot_dir with MSA replicates; --msa_only no longer requires FastTree
+- bootstrap and jk_markers: support values are calculated with gtdblib, which keeps the rooting and taxon labels of the input tree and writes whole-number support
+- jk_markers: FastTree failures are reported instead of ignored
+- combine: handles nodes without support values (e.g. the root) and decimal support values
+- errors now exit with a non-zero code
+- fixed pull writing invalid taxonomy strings for leaves without labelled ancestors
+- fixed derep_tree (required --msa_file and failed on Python 3) and arb_records (failed on Python 3)
+- removed unused modules (infer_workflow, markers, ncbi, aai)
+- added end-to-end tests of the commands in tests/
+
+0.2.3
+- added sh_uf_hack command
+
 0.2.2
 - fixed bug with filtered MSA columns being written out in a random order within each marker
 - now generating final_mask.txt which is the mask after filtering and subsampling

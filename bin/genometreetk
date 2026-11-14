@@ -31,8 +31,8 @@ import ntpath
 import os
 import sys
 
-from biolib.common import make_sure_path_exists
-from biolib.misc.custom_help_formatter import CustomHelpFormatter
+from gtdblib.cli.custom_help_formatter import CustomHelpFormatter
+from gtdblib.util.shell.gtdbshutil import make_sure_path_exists
 
 from genometreetk import __version__
 from genometreetk.main import OptionsParser
@@ -101,9 +101,14 @@ def logger_setup(output_dir, silent):
         Flag indicating if output to stdout should be suppressed.
     """
 
-    # setup general properties of logger
+    # setup general properties of logger; gtdblib adds a RichHandler to the
+    # root logger on import and sets its level to NOTSET, so existing handlers
+    # are removed to avoid every message being written twice and the level is
+    # set to INFO so debug messages from third-party libraries are not shown
     logger = logging.getLogger('')
-    logger.setLevel(logging.DEBUG)
+    for handler in list(logger.handlers):
+        logger.removeHandler(handler)
+    logger.setLevel(logging.INFO)
     log_format = logging.Formatter(fmt="[%(asctime)s] %(levelname)s: %(message)s",
                                    datefmt="%Y-%m-%d %H:%M:%S")
 
@@ -111,7 +116,6 @@ def logger_setup(output_dir, silent):
     if not silent:
         stream_logger = logging.StreamHandler(sys.stdout)
         stream_logger.setFormatter(log_format)
-        stream_logger.setLevel(logging.DEBUG)
         logger.addHandler(stream_logger)
 
     if output_dir:
@@ -204,7 +208,7 @@ if __name__ == '__main__':
                                         formatter_class=CustomHelpFormatter,
                                         description='Filter MSA based on gaps and conservation of bases.')
     msa_filter_parser.add_argument('marker_info_file', help="file indicate marker genes in concatenated alignment (e.g. gtdb_r<cur>_bac120_markers_info.tsv)")
-    msa_filter_parser.add_argument('witchi_info_file', help="file indicating columns pruned by WitChi (e.g. gtdb_r<cur>_bac120_concatenated_quartic_s400_touchdown_pruned.tsv)")
+    msa_filter_parser.add_argument('witchi_info_file', help="file indicating columns pruned by WitChi (e.g. gtdb_r<cur>_bac120_concatenated_quartic_s400_touchdown_pruned.tsv or None)")
     msa_filter_parser.add_argument('witch_msa_file', help="file with WitChi pruned MSA (e.g. gtdb_r<cur>_bac120_concatenated_quartic_s400_touchdown_pruned.fasta)")
     msa_filter_parser.add_argument('output_dir', help="output directory")
     msa_filter_parser.add_argument('--msa_length', help="desired MSA length after random subsampling", type=int, default=5000)
@@ -234,12 +238,13 @@ if __name__ == '__main__':
     bootstrap_parser.add_argument('input_tree', help="tree inferred from original data (NONE to skip decorating tree with bootstrap values)")
     bootstrap_parser.add_argument('msa_file', help="file containing multiple sequence alignment  (or 'NONE' if '--boot_dir' is given)")
     bootstrap_parser.add_argument('output_dir', help="output directory")
-    bootstrap_parser.add_argument('--boot_dir', help="directory containing pre-computed bootstrap trees (must have '.tree', '.tre', or '.treefile' extension)")
+    bootstrap_parser.add_argument('--boot_dir', help="directory containing pre-computed bootstrap trees ('.tree', '.tre', or '.treefile' extension) or, if no trees are present, MSA replicates ('.fna', '.faa', '.fasta', or '.fa' extension) to infer trees from")
     bootstrap_parser.add_argument('-b', '--base_type', choices=['nt', 'prot'], help="indicates if bases are nucleotides or amino acids", default='prot')
     bootstrap_parser.add_argument('-m', '--model', choices=['wag', 'lg', 'jtt'], help="model of evolution to use", default='wag')
     bootstrap_parser.add_argument('-g', '--gamma', action='store_true', help="indicates that the GAMMA model should be used")
     bootstrap_parser.add_argument('-r', '--num_replicates', help="number of bootstrap replicates to perform", type=int, default=100)
-    bootstrap_parser.add_argument('-f', '--fraction', help="fraction of alignment to subsample", type=float, default=1.0)
+    bootstrap_parser.add_argument('-f', '--fraction', help="fraction of alignment to subsample (0, 1]", type=float, default=1.0)
+    bootstrap_parser.add_argument('--seed', help="seed for random number generator (randomly chosen and reported if not given)", type=int, default=None)
     bootstrap_parser.add_argument('--msa_only', help="only produce MSA replicates", action='store_true')
     bootstrap_parser.add_argument('--mp', help='use FastTreeMP (nummber of CPUs can be set with "export OMP_NUM_THREADS=<#>")', action='store_true')
     bootstrap_parser.add_argument('-c', '--cpus', help='number of CPUs to use (also determines number of replicates to process in parallel)', type=int, default=1)
@@ -430,8 +435,10 @@ if __name__ == '__main__':
             pdb.run(parser.parse_options(args))
         else:
             parser.parse_options(args)
-    except SystemExit:
-        print("\n  Controlled exit resulting from an unrecoverable error or warning.")
+    except SystemExit as e:
+        if e.code not in (0, None):
+            print("\n  Controlled exit resulting from an unrecoverable error or warning.")
+        raise
     except:
         print("\nUnexpected error:", sys.exc_info()[0])
         raise
