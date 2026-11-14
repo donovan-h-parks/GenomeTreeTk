@@ -23,7 +23,7 @@ setup(
     python_requires='>=3.7',
     install_requires=[
         "numpy >= 1.17.0",
-        "gtdblib >= 1.12.0, < 2",
+        "gtdblib >= 1.12.1, < 2",
         "dendropy >= 4.4.0",
         "tqdm"],
 )

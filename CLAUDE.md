@@ -17,7 +17,7 @@ python3 bin/genometreetk <command> -h
 
 Install for use on `PATH` with `pip install .` (packaging uses `setup.py` with setuptools).
 
-Python dependencies: `gtdblib` (≥ 1.12, the GTDB team's shared library at `~/git/gtdb-lib`; supplies file checks, FASTA I/O, Newick label parsing, taxonomy helpers, bootstrap support calculation, and the CLI help formatter), `dendropy` (all tree manipulation), `numpy` (≥ 1.17), and `tqdm`. Several commands also shell out to external tools, checked at runtime with `gtdblib.util.shell.execute.check_dependencies`: FastTree/FastTreeMP, makeblastdb/blastn, ssu-align/ssu-mask, mothur, and Infernal/Easel (`cmsearch`, `cmalign`, `esl-sfetch`, `esl-alimask`). The mothur path in `rna_workflow.py` hard-codes `/srv/sw/Mothur/...` and `/srv/db/mothur/silva_128/...`.
+Python dependencies: `gtdblib` (≥ 1.12.1, the GTDB team's shared library at `~/git/gtdb-lib`; supplies file checks, FASTA I/O, Newick label parsing, taxonomy helpers, bootstrap support calculation, and the CLI help formatter), `dendropy` (all tree manipulation), `numpy` (≥ 1.17), and `tqdm`. Several commands also shell out to external tools, checked at runtime with `gtdblib.util.shell.execute.check_dependencies`: FastTree/FastTreeMP, makeblastdb/blastn, ssu-align/ssu-mask, mothur, and Infernal/Easel (`cmsearch`, `cmalign`, `esl-sfetch`, `esl-alimask`). The mothur path in `rna_workflow.py` hard-codes `/srv/sw/Mothur/...` and `/srv/db/mothur/silva_128/...`.
 
 ### Tests
 
@@ -51,7 +51,7 @@ Other notes:
   - It loads the MSA into a single numpy `uint8` matrix and shares it with workers through a module-level global and a `fork` pool. Spawn or forkserver would copy the matrix to every worker, and a dict of `str` gets duplicated page by page by refcount writes.
   - Each replicate is seeded from `(seed, replicate index)`, so output does not depend on `-c`.
   - On a rerun, an MSA replicate is skipped only if its byte size matches exactly, and a tree only if it is complete.
-- Logging: importing gtdblib adds a RichHandler to the root logger. `logger_setup` in `bin/genometreetk` removes existing root handlers before adding its own and sets the level to INFO. Don't remove that, or every message is printed twice.
+- Logging: gtdblib logs to its own `rich` logger, which it gives a RichHandler and stops from propagating. `logger_setup` in `bin/genometreetk` removes that handler and turns propagation back on, so gtdblib's messages use GenomeTreeTk's format, go to `genometreetk.log`, and obey `--silent`. `bin/genometreetk` also reports a `GtdbLibException` (e.g. a taxon without a rank prefix) as a logged error with exit code 1 instead of a traceback.
 - Errors should log the problem and call `sys.exit(1)`. `bin/genometreetk` passes the exit code through (as do gtdblib's `check_file_exists` etc.), so batch jobs can detect failures.
 - `cm_files/` contains Infernal covariance models for LSU and ships as package data.
 
