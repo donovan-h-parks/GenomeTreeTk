@@ -117,6 +117,31 @@ class TestErrors(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             proc = run_genometreetk(['strip', str(Path(tmp) / 'missing.tree'), str(Path(tmp) / 'out.tree')], cwd=tmp)
             self.assertNotEqual(proc.returncode, 0)
+            self.assertIn('ERROR: Input file does not exist', proc.stdout)
+
+    def test_gtdblib_error_is_reported_without_traceback(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = Path(tmp) / 'no_prefix.tree'
+            tree.write_text("((A:1,B:1)'100:Firmicutes':1,(C:1,D:1)'p__Proteobacteria':1);\n")
+            proc = run_genometreetk(['pull', str(tree), str(Path(tmp) / 'taxonomy.tsv')], cwd=tmp)
+            self.assertEqual(proc.returncode, 1)
+            self.assertIn('ERROR: Taxon is missing rank prefix: Firmicutes', proc.stdout)
+            self.assertNotIn('Traceback', proc.stdout + proc.stderr)
+
+    def test_gtdblib_messages_use_genometreetk_logging(self):
+        # gtdblib logs to its own 'rich' logger, which must be routed through
+        # GenomeTreeTk's handlers (log format, log file, and --silent)
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'out'
+            args = ['bootstrap', str(DATA / 'support_a.tree'), 'None', str(out), '--boot_dir', str(DATA / 'boot_trees')]
+            proc = run_genometreetk(args, cwd=tmp)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            self.assertRegex(proc.stdout, r'\] INFO: Wrote tree to: ')
+            self.assertIn('INFO: Wrote tree to: ', (out / 'genometreetk.log').read_text())
+
+            proc = run_genometreetk(args + ['--silent'], cwd=tmp)
+            self.assertEqual(program_output(proc.stdout), '')
+            self.assertNotIn('Wrote tree to', proc.stdout)
 
     def test_help(self):
         with tempfile.TemporaryDirectory() as tmp:
