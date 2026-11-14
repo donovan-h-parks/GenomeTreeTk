@@ -204,7 +204,7 @@ if __name__ == '__main__':
                                         formatter_class=CustomHelpFormatter,
                                         description='Filter MSA based on gaps and conservation of bases.')
     msa_filter_parser.add_argument('marker_info_file', help="file indicate marker genes in concatenated alignment (e.g. gtdb_r<cur>_bac120_markers_info.tsv)")
-    msa_filter_parser.add_argument('witchi_info_file', help="file indicating columns pruned by WitChi (e.g. gtdb_r<cur>_bac120_concatenated_quartic_s400_touchdown_pruned.tsv)")
+    msa_filter_parser.add_argument('witchi_info_file', help="file indicating columns pruned by WitChi (e.g. gtdb_r<cur>_bac120_concatenated_quartic_s400_touchdown_pruned.tsv or None)")
     msa_filter_parser.add_argument('witch_msa_file', help="file with WitChi pruned MSA (e.g. gtdb_r<cur>_bac120_concatenated_quartic_s400_touchdown_pruned.fasta)")
     msa_filter_parser.add_argument('output_dir', help="output directory")
     msa_filter_parser.add_argument('--msa_length', help="desired MSA length after random subsampling", type=int, default=5000)

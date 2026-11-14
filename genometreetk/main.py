@@ -145,7 +145,9 @@ class OptionsParser():
         """Filter MSA based on gaps and conservation of bases."""
 
         check_file_exists(options.marker_info_file)
-        check_file_exists(options.witchi_info_file)
+        if options.witchi_info_file.lower() != 'none':
+            check_file_exists(options.witchi_info_file)
+
         check_file_exists(options.witch_msa_file)
         make_sure_path_exists(options.output_dir)
 
