@@ -19,12 +19,12 @@ import os
 import logging
 import random
 from math import floor
+from pathlib import Path
 
-import biolib.seq_io as seq_io
-from biolib.external.fasttree import FastTree
-from biolib.parallel import Parallel
-from biolib.bootstrap import bootstrap_support
-from biolib.common import remove_extension, make_sure_path_exists
+from gtdblib.util.bio import seq_io
+from gtdblib.util.shell.gtdbshutil import make_sure_path_exists
+
+from genometreetk.fasttree import infer_trees
 
 from genometreetk.tree_support import TreeSupport
 
@@ -45,29 +45,15 @@ class JackknifeTaxa(object):
 
         self.cpus = cpus
 
-    def _producer(self, replicated_num):
-        """Infer tree from jackknifed alignments.
+    def _create_replicates(self, num_replicates):
+        """Create jackknifed alignments and infer a tree for each."""
 
-        Parameters
-        ----------
-        replicated_num : int
-          Unique replicate number.
-        """
+        msa_files = [os.path.join(self.replicate_dir, f'jk_taxa.msa.{i}.fna') for i in range(num_replicates)]
+        tree_files = [os.path.join(self.replicate_dir, f'jk_taxa.tree.{i}.tre') for i in range(num_replicates)]
+        for msa_file in msa_files:
+            self.jackknife_taxa(self.msa, self.perc_taxa_to_keep, self.outgroup_ids, msa_file)
 
-        output_msa = os.path.join(self.replicate_dir, 'jk_taxa.msa.' + str(replicated_num) + '.fna')
-        self.jackknife_taxa(self.msa, self.perc_taxa_to_keep, self.outgroup_ids, output_msa)
-
-        fast_tree = FastTree(multithreaded=False)
-        output_tree = os.path.join(self.replicate_dir, 'jk_taxa.tree.' + str(replicated_num) + '.tre')
-        fast_tree_output = os.path.join(self.replicate_dir, 'jk_taxa.fasttree.' + str(replicated_num) + '.out')
-        fast_tree.run(output_msa, 'prot', self.model, output_tree, fast_tree_output)
-
-        return True
-
-    def _progress(self, processed_items, total_items):
-        """Report progress of replicates."""
-
-        return '    Processed %d of %d replicates.' % (processed_items, total_items)
+        infer_trees(msa_files, tree_files, cpus=self.cpus, base_type='prot', model=self.model)
 
     def jackknife_taxa(self, msa, perc_taxa_to_keep, outgroup_ids, output_file):
         """Jackknife alignment to a subset of taxa.
@@ -86,7 +72,7 @@ class JackknifeTaxa(object):
 
         # randomly select ingroup taxa
         ingroup_taxa = set(msa.keys()) - outgroup_ids
-        taxa_to_keep = random.sample(ingroup_taxa, int(floor(len(ingroup_taxa) * perc_taxa_to_keep)))
+        taxa_to_keep = random.sample(sorted(ingroup_taxa), int(floor(len(ingroup_taxa) * perc_taxa_to_keep)))
 
         taxa_to_keep = set(taxa_to_keep).union(outgroup_ids)
 
@@ -136,8 +122,7 @@ class JackknifeTaxa(object):
 
         # calculate replicates
         #***self.logger.info('Calculating jackknife taxa replicates:')
-        #***parallel = Parallel(self.cpus)
-        #***parallel.run(self._producer, None, range(num_replicates), self._progress)
+        #***self._create_replicates(num_replicates)
 
         # calculate support
         rep_tree_files = []
@@ -145,7 +130,7 @@ class JackknifeTaxa(object):
             rep_tree_files.append(os.path.join(self.replicate_dir, 'jk_taxa.tree.' + str(rep_index) + '.tre'))
 
         tree_support = TreeSupport()
-        output_tree = os.path.join(output_dir, remove_extension(input_tree) + '.jk_taxa.tree')
+        output_tree = os.path.join(output_dir, Path(input_tree).stem + '.jk_taxa.tree')
         tree_support.subset_taxa(input_tree, rep_tree_files, output_tree)
 
         return output_tree

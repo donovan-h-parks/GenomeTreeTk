@@ -23,7 +23,7 @@ from typing import Tuple, List, Dict
 from collections import defaultdict, Counter
 from dataclasses import dataclass
 
-from biolib.seq_io import read_fasta
+from gtdblib.util.bio.seq_io import read_fasta
 
 from tqdm import tqdm
 

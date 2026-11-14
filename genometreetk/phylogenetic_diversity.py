@@ -22,8 +22,8 @@ from math import floor
 
 import dendropy
 
-from biolib.common import is_float
-from biolib.taxonomy import Taxonomy
+from gtdblib.taxonomy.taxonomy import sort_taxa
+from gtdblib.util.types import is_float
 
 
 class PhylogeneticDiversity():
@@ -253,7 +253,7 @@ class PhylogeneticDiversity():
         fout.write('\tIn Taxa\tIn PD\tIn Percent PD')
         fout.write('\tIn PG\tIn Percent PG\n')
         
-        ordered_taxa = Taxonomy().sort_taxa(pd_clade.keys())
+        ordered_taxa = sort_taxa(pd_clade.keys())
         for taxon in ordered_taxa:
             taxon_pd, in_taxon_pd, in_taxon_count, out_taxon_pd, out_taxon_count = pd_clade[taxon]
             taxon_count = in_taxon_count + out_taxon_count

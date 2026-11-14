@@ -19,7 +19,7 @@ import logging
 
 import dendropy
 
-from biolib.newick import parse_label
+from gtdblib.util.bio.newick import parse_label
 
 
 class Prune(object):

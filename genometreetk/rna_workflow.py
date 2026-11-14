@@ -18,11 +18,13 @@
 import logging
 import os
 import sys
+from pathlib import Path
 
-import biolib.seq_io as seq_io
-from biolib.common import remove_extension
-from biolib.external.blast import Blast
-from biolib.taxonomy import Taxonomy
+import gtdblib.util.bio.seq_io as seq_io
+from gtdblib.taxonomy.taxonomy import Taxonomy, read_taxonomy, read_taxonomy_from_tree
+from gtdblib.taxonomy.taxonomy import extant_taxa as get_extant_taxa
+
+from genometreetk import blast
 
 from genometreetk.common import (read_gtdb_metadata,
                                  read_gtdb_taxonomy)
@@ -141,7 +143,7 @@ class RNA_Workflow(object):
             self.logger.warning('User genomes not currently supported.')
             sys.exit(-1)
             
-        gtdb_taxonomy = Taxonomy().read(gtdb_taxonomy)
+        gtdb_taxonomy = read_taxonomy(gtdb_taxonomy)
             
         genomes_of_interest = set()
         if genome_list:
@@ -287,7 +289,7 @@ class RNA_Workflow(object):
                 if seq_id_I in identical_seqs:
                     continue
 
-                for j in range(i + 1, len(seqIds)):
+                for j in range(i + 1, len(seq_ids)):
                     seq_id_J = seq_ids[j]
                     if seqs[seq_id_I] == seqs[seq_id_J]:
                       self.logger.info('Seq %s and %s are identical.' % (seq_id_I, seq_id_J))
@@ -356,15 +358,14 @@ class RNA_Workflow(object):
 
         """
         
-        extant_taxa = Taxonomy().extant_taxa(taxonomy)
+        extant_taxa = get_extant_taxa(taxonomy)
 
         tax_filter_dir = os.path.join(output_dir, 'tax_filter')
         if not os.path.exists(tax_filter_dir):
             os.makedirs(tax_filter_dir)
         
-        blast = Blast(self.cpus)
         self.logger.info('Creating BLASTN database.')
-        blast.create_blastn_db(ssu_output_file)
+        blast.create_blastn_db(ssu_output_file, ssu_output_file)
 
         self.logger.info('Performing reciprocal BLAST to identify sequences with incongruent taxonomies.')
         
@@ -372,15 +373,15 @@ class RNA_Workflow(object):
         blast.blastn(ssu_output_file,
                      ssu_output_file,
                      blast_table,
+                     cpus=self.cpus,
                      evalue=1e-10,
                      max_matches=2,
-                     output_fmt='custom',
                      task='blastn')
 
         filter = set()
         fout = open(os.path.join(tax_filter_dir, 'filtered_seqs.tsv'), 'w')
         fout.write('Query ID\tQuery Taxonomy\tSubject ID\tSubject Taxonomy\tPerc. Identity\tAlign. Length\tMismatch Rank\tNo. Query Genomes\tNo. Subject Genomes\n')
-        for hit in blast.read_hit(blast_table, table_fmt='custom'):
+        for hit in blast.read_hits(blast_table):
             if hit.query_id == hit.subject_id:
                 # ignore self hits
                 continue
@@ -391,7 +392,7 @@ class RNA_Workflow(object):
                     
                 # require a (very lenient) percent identity of threshold from Yarza et al., 2014
                 if hit.query_id not in filter and hit.perc_identity >= 82: # order
-                    rank_index = Taxonomy.rank_labels.index('order')
+                    rank_index = Taxonomy.RANK_LABELS.index('order')
                     query_taxa = taxonomy[query_genome_id][rank_index][3:].strip()
                     subject_taxa = taxonomy[subject_genome_id][rank_index][3:].strip()
                     if query_taxa and subject_taxa and query_taxa != subject_taxa:
@@ -408,7 +409,7 @@ class RNA_Workflow(object):
                 
                 if False:
                     if hit.perc_identity >= 75: # phylum
-                        rank_index = Taxonomy.rank_labels.index('phylum')
+                        rank_index = Taxonomy.RANK_LABELS.index('phylum')
                         query_taxa = taxonomy[query_genome_id][rank_index][3:].strip()
                         subject_taxa = taxonomy[subject_genome_id][rank_index][3:].strip()
                         if query_taxa and subject_taxa and query_taxa != subject_taxa:
@@ -424,7 +425,7 @@ class RNA_Workflow(object):
                                                                     len(extant_taxa['p__' + subject_taxa])))
                                                                     
                     if hit.perc_identity >= 78.5: # class
-                        rank_index = Taxonomy.rank_labels.index('class')
+                        rank_index = Taxonomy.RANK_LABELS.index('class')
                         query_taxa = taxonomy[query_genome_id][rank_index][3:].strip()
                         subject_taxa = taxonomy[subject_genome_id][rank_index][3:].strip()
                         if query_taxa and subject_taxa and query_taxa != subject_taxa:
@@ -440,7 +441,7 @@ class RNA_Workflow(object):
                                                                     len(extant_taxa['c__' + subject_taxa])))
                     
                     if hit.query_id not in filter and hit.perc_identity >= 82: # order
-                        rank_index = Taxonomy.rank_labels.index('order')
+                        rank_index = Taxonomy.RANK_LABELS.index('order')
                         query_taxa = taxonomy[query_genome_id][rank_index][3:].strip()
                         subject_taxa = taxonomy[subject_genome_id][rank_index][3:].strip()
                         if query_taxa and subject_taxa and query_taxa != subject_taxa:
@@ -456,7 +457,7 @@ class RNA_Workflow(object):
                                                                     len(extant_taxa['o__' + subject_taxa])))
                                                                     
                     if hit.query_id not in filter and hit.perc_identity >= 86.5: # family
-                        rank_index = Taxonomy.rank_labels.index('family')
+                        rank_index = Taxonomy.RANK_LABELS.index('family')
                         query_taxa = taxonomy[query_genome_id][rank_index][3:].strip()
                         subject_taxa = taxonomy[subject_genome_id][rank_index][3:].strip()
                         if query_taxa and subject_taxa and query_taxa != subject_taxa:
@@ -472,7 +473,7 @@ class RNA_Workflow(object):
                                                                     len(extant_taxa['f__' + subject_taxa])))
                                                                     
                     if hit.query_id not in filter and hit.perc_identity >= 94.5: # genus
-                        rank_index = Taxonomy.rank_labels.index('genus')
+                        rank_index = Taxonomy.RANK_LABELS.index('genus')
                         query_taxa = taxonomy[query_genome_id][rank_index][3:].strip()
                         subject_taxa = taxonomy[subject_genome_id][rank_index][3:].strip()
                         if query_taxa and subject_taxa and query_taxa != subject_taxa:
@@ -488,7 +489,7 @@ class RNA_Workflow(object):
                                                                     len(extant_taxa['g__' + subject_taxa])))
 
                     if hit.query_id not in filter and hit.perc_identity >= 99: # species
-                        rank_index = Taxonomy.rank_labels.index('species')
+                        rank_index = Taxonomy.RANK_LABELS.index('species')
                         query_taxa = taxonomy[query_genome_id][rank_index][3:].strip()
                         subject_taxa = taxonomy[subject_genome_id][rank_index][3:].strip()
                         if query_taxa and subject_taxa and query_taxa != subject_taxa:
@@ -685,7 +686,7 @@ class RNA_Workflow(object):
 
                 mothur_cmd = 'mothur "#set.dir(output=%s, blastdir=/srv/sw/Mothur/1.39.5)' % align_dir
                 mothur_cmd += '; align.seqs(candidate=%s, template=/srv/db/mothur/silva_128/silva.seed_v128.align, search=blast, flip=t, processors=%d)' % (rna_output_file, self.cpus)
-                input_prefix = remove_extension(rna_output_file)
+                input_prefix = Path(rna_output_file).stem
                 align_file = os.path.join(align_dir, input_prefix + '.align')
                 mothur_cmd += '; filter.seqs(fasta=%s, hard=/srv/db/mothur/silva_128/Lane1349.silva.filter, processors=%d);"' % (align_file, self.cpus)
                 os.system(mothur_cmd)
@@ -734,7 +735,7 @@ class RNA_Workflow(object):
                 num_hits = 0
                 for top_domain, seq_id, start_seq, end_seq, bitscore in top_hits.values():
                     if top_domain == domain:
-                        fout.write('%s\t%d\t%d\%f\n' % (seq_id, start_seq, end_seq, bitscore))
+                        fout.write('%s\t%d\t%d\t%f\n' % (seq_id, start_seq, end_seq, bitscore))
                         num_hits += 1
                 fout.close()
                 
@@ -799,10 +800,10 @@ class RNA_Workflow(object):
         
         # identify incongruent taxonomic order classifcations between trees
         self.logger.info('Identifying incongruent order-level taxonomic classifications between trees.')
-        ssu_taxonomy = Taxonomy().read_from_tree(ssu_tree)
-        lsu_taxonomy = Taxonomy().read_from_tree(lsu_tree)
+        ssu_taxonomy = read_taxonomy_from_tree(ssu_tree)
+        lsu_taxonomy = read_taxonomy_from_tree(lsu_tree)
 
-        order_index = Taxonomy.rank_labels.index('order')
+        order_index = Taxonomy.RANK_LABELS.index('order')
 
         seqs_to_filter = set()
         for seq_id in common_seqs:

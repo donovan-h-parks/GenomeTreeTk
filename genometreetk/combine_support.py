@@ -18,6 +18,7 @@
 import logging
 
 import dendropy
+from gtdblib.util.bio.newick import parse_label, create_label
 
 
 class CombineSupport(object):
@@ -40,7 +41,8 @@ class CombineSupport(object):
         preorder_support = []
         for node in tree.preorder_node_iter():
             if node.is_internal():
-                preorder_support.append(node.label)
+                support, _taxon, _aux_info = parse_label(node.label)
+                preorder_support.append(support)
 
         return preorder_support
 
@@ -81,14 +83,21 @@ class CombineSupport(object):
         internalNodeNum = 0
         for node in tree.preorder_node_iter():
             if node.is_internal():
-                if support_type == 'average':
-                    support = (int(bootstrap_support[internalNodeNum]) + int(
-                        jk_marker_support[internalNodeNum]) + int(jk_taxa_support[internalNodeNum])) / 3.0
-                elif support_type == 'minimum':
-                    support = min(int(bootstrap_support[internalNodeNum]), int(
-                        jk_marker_support[internalNodeNum]), int(jk_taxa_support[internalNodeNum]))
+                values = (bootstrap_support[internalNodeNum],
+                          jk_marker_support[internalNodeNum],
+                          jk_taxa_support[internalNodeNum])
+                _support, taxon, aux_info = parse_label(node.label)
 
-                node.label = '%s' % str(int(support + 0.5))
+                # nodes without a support value in every tree (e.g. the root)
+                # are not given a combined support value
+                support = None
+                if all(v is not None for v in values):
+                    if support_type == 'average':
+                        support = int(sum(values) / 3.0 + 0.5)
+                    elif support_type == 'minimum':
+                        support = int(min(values) + 0.5)
+
+                node.label = create_label(support, taxon, aux_info) or None
                 internalNodeNum += 1
 
         tree.write_to_path(output_tree, schema='newick',

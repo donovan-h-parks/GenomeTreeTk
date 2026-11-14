@@ -20,7 +20,7 @@ import logging
 
 import dendropy
 
-from biolib.newick import parse_label, create_label
+from gtdblib.util.bio.newick import parse_label, create_label
 
 
 class RerootTree(object):

@@ -17,13 +17,16 @@
 
 import csv
 import logging
+import os
 import sys
 
 import dendropy
-from biolib.common import check_file_exists, make_sure_path_exists, canonical_gid
-from biolib.external.execute import check_dependencies
-from biolib.newick import parse_label
-from biolib.taxonomy import Taxonomy
+from gtdblib.taxonomy.taxonomy import (read_taxonomy, read_taxonomy_from_tree, write_taxonomy,
+                                       fill_missing_ranks, check_full_taxonomy)
+from gtdblib.util.bio.accession import canonical_gid
+from gtdblib.util.bio.newick import parse_label
+from gtdblib.util.shell.execute import check_dependencies
+from gtdblib.util.shell.gtdbshutil import check_file_exists, make_sure_path_exists
 
 from genometreetk.arb import Arb
 from genometreetk.bootstrap import Bootstrap
@@ -167,7 +170,8 @@ class OptionsParser():
 
         check_file_exists(options.input_tree)
         check_file_exists(options.gtdb_metadata)
-        check_file_exists(options.msa_file)
+        if options.msa_file:
+            check_file_exists(options.msa_file)
         make_sure_path_exists(options.output_dir)
 
         derep_tree = DereplicateTree()
@@ -183,12 +187,31 @@ class OptionsParser():
     def bootstrap(self, options):
         """Bootstrap multiple sequence alignment."""
 
-        check_dependencies(['FastTree'])
+        if not 0 < options.fraction <= 1:
+            self.logger.error('Fraction of alignment to subsample must be in the range (0, 1].')
+            sys.exit(1)
+
+        if options.num_replicates < 1:
+            self.logger.error('Number of replicates must be at least 1.')
+            sys.exit(1)
+
+        if options.cpus < 1:
+            self.logger.error('Number of CPUs must be at least 1.')
+            sys.exit(1)
 
         if options.input_tree.lower() != 'none':
             check_file_exists(options.input_tree)
-        if options.msa_file.lower() != 'none':
+
+        if options.boot_dir:
+            if not os.path.isdir(options.boot_dir):
+                self.logger.error('Bootstrap directory does not exist: %s' % options.boot_dir)
+                sys.exit(1)
+        elif options.msa_file.lower() == 'none':
+            self.logger.error('An MSA file must be specified unless --boot_dir is given.')
+            sys.exit(1)
+        else:
             check_file_exists(options.msa_file)
+
         make_sure_path_exists(options.output_dir)
 
         bootstrap = Bootstrap(options.cpus, options.mp)
@@ -201,9 +224,11 @@ class OptionsParser():
                                     options.fraction,
                                     options.boot_dir,
                                     options.msa_only,
-                                    options.output_dir)
+                                    options.output_dir,
+                                    options.seed)
 
-        self.logger.info('Bootstrapped tree written to: %s' % output_tree)
+        if output_tree:
+            self.logger.info('Bootstrapped tree written to: %s' % output_tree)
 
     def jk_markers(self, options):
         """Jackknife marker genes."""
@@ -283,7 +308,7 @@ class OptionsParser():
 
         self.logger.info('Identifying genomes from the specified outgroup.')
         outgroup = set()
-        for genome_id, taxa in Taxonomy().read(options.taxonomy_file).items():
+        for genome_id, taxa in read_taxonomy(options.taxonomy_file).items():
             if options.outgroup_taxon in taxa:
                 outgroup.add(genome_id)
         self.logger.info(
@@ -299,14 +324,13 @@ class OptionsParser():
         check_file_exists(options.input_taxonomy)
 
         fout = open(options.output_taxonomy, 'w')
-        taxonomy = Taxonomy()
-        t = taxonomy.read(options.input_taxonomy)
+        t = read_taxonomy(options.input_taxonomy)
 
         for genome_id, taxon_list in t.items():
-            full_taxon_list = taxonomy.fill_missing_ranks(taxon_list)
+            full_taxon_list = fill_missing_ranks(taxon_list)
 
             taxonomy_str = ';'.join(full_taxon_list)
-            if not taxonomy.check_full(taxonomy_str):
+            if not check_full_taxonomy(taxonomy_str):
                 sys.exit(-1)
 
             fout.write('%s\t%s\n' % (genome_id, taxonomy_str))
@@ -343,7 +367,7 @@ class OptionsParser():
         rep_metadata = {user_to_uba.get(gid, gid): values
                         for gid, values in rep_metadata.items()}
 
-        explict_tax = Taxonomy().read(options.input_taxonomy)
+        explict_tax = read_taxonomy(options.input_taxonomy)
 
         self.logger.info(f' - identified {len(rep_metadata):,} genomes')
 
@@ -480,9 +504,9 @@ class OptionsParser():
 
                 taxonomy[taxon_id] = taxa[::-1]
         else:
-            taxonomy = Taxonomy().read_from_tree(options.input_tree)
+            taxonomy = read_taxonomy_from_tree(options.input_tree)
 
-        Taxonomy().write(taxonomy, options.output_taxonomy)
+        write_taxonomy(taxonomy, options.output_taxonomy)
 
         self.logger.info('Stripped tree written to: %s' %
                          options.output_taxonomy)
@@ -493,7 +517,7 @@ class OptionsParser():
         check_file_exists(options.input_tree)
         check_file_exists(options.input_taxonomy)
 
-        taxonomy = Taxonomy().read(options.input_taxonomy)
+        taxonomy = read_taxonomy(options.input_taxonomy)
 
         tree = dendropy.Tree.get_from_path(options.input_tree,
                                            schema='newick',

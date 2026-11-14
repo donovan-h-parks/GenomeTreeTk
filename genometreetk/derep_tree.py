@@ -22,8 +22,8 @@ import logging
 
 from genometreetk.common import read_gtdb_metadata
 
-from biolib.seq_io import read_seq
-from biolib.newick import parse_label
+from gtdblib.util.bio.seq_io import read_seq
+from gtdblib.util.bio.newick import parse_label
 
 import dendropy
 
@@ -82,8 +82,8 @@ class DereplicateTree(object):
         """Select genomes in named lineages on path from ingroup to outgroup."""
         
         # get most recent common ancestor of outgroup and lineage of interest
-        outgroup_leaf_taxon = outgroup_node.leaf_iter().next().taxon
-        lineage_of_interest_taxon = node_of_interest.leaf_iter().next().taxon
+        outgroup_leaf_taxon = next(outgroup_node.leaf_iter()).taxon
+        lineage_of_interest_taxon = next(node_of_interest.leaf_iter()).taxon
         mrca = tree.mrca(taxa=[outgroup_leaf_taxon, lineage_of_interest_taxon])
         
         # get taxon of lineage of interest
