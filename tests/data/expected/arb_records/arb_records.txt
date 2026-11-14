@@ -1,0 +1,99 @@
+BEGIN
+db_name=RS_GCF_000000001.1
+gtdb_representative=t
+gtdb_clustered_genomes=RS_GCF_000000001.1;GB_GCA_000000002.1;RS_GCF_000000003.1
+checkm_completeness=99.1
+checkm_contamination=0.5
+gtdb_taxonomy=d__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Bacillaceae; g__Bacillus; s__Bacillus subtilis
+warning=
+aligned_seq=IWVFNYSWDYASKVIHSVVS
+END
+
+BEGIN
+db_name=GB_GCA_000000002.1
+gtdb_representative=f
+gtdb_clustered_genomes=none
+checkm_completeness=95.0
+checkm_contamination=1.2
+gtdb_taxonomy=d__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Bacillaceae; g__Bacillus; s__Bacillus subtilis
+warning=
+aligned_seq=PFIFTPADGWCLAKSYPQPW
+END
+
+BEGIN
+db_name=RS_GCF_000000003.1
+gtdb_representative=f
+gtdb_clustered_genomes=none
+checkm_completeness=97.3
+checkm_contamination=0.1
+gtdb_taxonomy=d__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Bacillaceae; g__Bacillus; s__Bacillus cereus
+warning=
+aligned_seq=RFNECFSHKQLQTPWNVWQW
+END
+
+BEGIN
+db_name=GB_GCA_000000004.1
+gtdb_representative=f
+gtdb_clustered_genomes=none
+checkm_completeness=88.0
+checkm_contamination=3.0
+gtdb_taxonomy=d__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Paenibacillaceae; g__Paenibacillus; s__
+warning=
+aligned_seq=IMAKYGMVWWEHWKLEDSSD
+END
+
+BEGIN
+db_name=RS_GCF_000000005.1
+gtdb_representative=f
+gtdb_clustered_genomes=none
+checkm_completeness=99.9
+checkm_contamination=0.0
+gtdb_taxonomy=d__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Paenibacillaceae; g__Paenibacillus; s__Paenibacillus polymyxa
+warning=
+aligned_seq=NDQFALQQECYYCPWMVKTI
+END
+
+BEGIN
+db_name=GB_GCA_000000006.1
+gtdb_representative=f
+gtdb_clustered_genomes=none
+checkm_completeness=70.2
+checkm_contamination=4.9
+gtdb_taxonomy=d__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__; f__; g__; s__
+warning=
+aligned_seq=CLADEYVCHQLYKFCMMNFP
+END
+
+BEGIN
+db_name=RS_GCF_000000007.1
+gtdb_representative=t
+gtdb_clustered_genomes=RS_GCF_000000007.1;GB_GCA_000000008.1
+checkm_completeness=98.0
+checkm_contamination=0.7
+gtdb_taxonomy=d__Archaea; p__Halobacteriota; c__Halobacteria; o__Halobacteriales; f__Haloarculaceae; g__Haloarcula; s__Haloarcula marismortui
+warning=
+aligned_seq=PRTPYVEYTKQILQKTLVMA
+END
+
+BEGIN
+db_name=GB_GCA_000000008.1
+gtdb_representative=f
+gtdb_clustered_genomes=none
+checkm_completeness=92.4
+checkm_contamination=2.2
+gtdb_taxonomy=d__Archaea; p__Halobacteriota; c__Halobacteria; o__Halobacteriales; f__Haloferacaceae; g__Haloferax; s__
+warning=
+aligned_seq=QWMAPYWFCMRNNYKSAWCA
+END
+
+BEGIN
+db_name=GB_GCA_000000009.1
+gtdb_representative=f
+gtdb_clustered_genomes=none
+checkm_completeness=81.0
+checkm_contamination=1.0
+gtdb_taxonomy=d__Archaea; p__Thermoproteota; c__; o__; f__; g__; s__
+warning=
+aligned_seq=NKRLWYMGNGMNYKLPEAWF
+END
+

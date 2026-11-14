@@ -1,0 +1,7 @@
+Clade	Taxa	PD	Percent PD	Out Taxa	Out PD	Out Percent PD	In Taxa	In PD	In Percent PD	In PG	In Percent PG
+d__Archaea	3	1.75	39.33	3	1.75	100.00	0	0.00	0.00	0.00	0.00
+d__Bacteria	6	2.10	47.19	1	0.60	28.57	5	1.50	71.43	1.50	71.43
+p__Firmicutes; c__Bacilli; o__Bacillales	5	1.30	29.21	0	0.00	0.00	5	1.30	100.00	1.30	100.00
+p__Halobacteriota	2	0.85	19.10	2	0.85	100.00	0	0.00	0.00	0.00	0.00
+f__Bacillaceae; g__Bacillus	3	0.65	14.61	0	0.00	0.00	3	0.65	100.00	0.65	100.00
+s__Bacillus subtilis	2	0.30	6.74	0	0.00	0.00	2	0.30	100.00	0.30	100.00

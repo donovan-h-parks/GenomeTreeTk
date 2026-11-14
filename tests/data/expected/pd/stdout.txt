@@ -1,0 +1,5 @@
+	No. Taxa	PD	Percent PD
+Full tree	9	4.45	100.00%
+Outgroup taxa (PD)	4	2.95	66.292%
+Ingroup taxa (PD)	5	1.80	40.449%
+Ingroup taxa (PG)	5	1.50	33.708%

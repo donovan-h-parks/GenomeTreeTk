@@ -1,0 +1,10 @@
+accession	gtdb_representative	gtdb_clustered_genomes	checkm_completeness	checkm_contamination
+RS_GCF_000000001.1	t	RS_GCF_000000001.1;GB_GCA_000000002.1;RS_GCF_000000003.1	99.1	0.5
+GB_GCA_000000002.1	f	none	95.0	1.2
+RS_GCF_000000003.1	f	none	97.3	0.1
+GB_GCA_000000004.1	f	none	88.0	3.0
+RS_GCF_000000005.1	f	none	99.9	0.0
+GB_GCA_000000006.1	f	none	70.2	4.9
+RS_GCF_000000007.1	t	RS_GCF_000000007.1;GB_GCA_000000008.1	98.0	0.7
+GB_GCA_000000008.1	f	none	92.4	2.2
+GB_GCA_000000009.1	f	none	81.0	1.0
